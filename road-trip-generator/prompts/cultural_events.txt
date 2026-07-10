@@ -1,0 +1,118 @@
+Synthesize the following web search results into cultural event entries for a road trip itinerary.
+
+Destination:      {destination_name}
+Travel dates:     {dates}
+Destination type: {destination_type}
+  (values: national_park | small_town | resort_town | city)
+
+Search results (Bing API, raw):
+{bing_results}
+
+════════════════════════════════════════════════════════
+CORE RULE: HONESTY OVER COMPLETENESS
+════════════════════════════════════════════════════════
+
+If the search results do not contain substantive events within or immediately
+adjacent to the travel date range, DO NOT invent events. Return Format B
+(honest fallback) below. A traveler arriving to find a fabricated festival
+is a far worse outcome than an itinerary that honestly describes a quiet scene.
+
+════════════════════════════════════════════════════════
+DECISION TREE — follow in order
+════════════════════════════════════════════════════════
+
+Step 1 — Scan search results for events meeting ALL of these criteria:
+  a) Occurs during or within 7 days of the travel dates above
+  b) Is a specific named event — not a "things to do" listicle or general guide
+  c) Is a performance, exhibition, festival, market, or cultural program
+     NOT a restaurant listing, hotel deal, or standard park attraction
+
+Step 2 — Count qualifying events from Step 1.
+
+Step 3 — If count >= 2: return FORMAT A (events found)
+          If count < 2:  return FORMAT B (honest fallback)
+                         This includes ALL national_park destinations
+                         and most small_town destinations.
+
+Do not treat:
+  - "annual summer festival" results as evidence of an October event
+  - Events from prior years as current without explicit recurrence confirmation
+  - General visitor guides as event listings
+
+════════════════════════════════════════════════════════
+FORMAT A — Events found (count >= 2)
+════════════════════════════════════════════════════════
+
+{
+  "has_events": true,
+  "events": [
+    {
+      "name": "Full official event name exactly as it appears in search results",
+      "venue": "Venue name — include city if different from destination name",
+      "venue_address": "Street address only if present verbatim in search results — omit field otherwise",
+      "dates_in_range": "Exact dates from search results, e.g. 'October 22–24' or
+        'Every Friday evening in October' or 'October 30, 7:00pm'",
+      "description": "1–2 sentences: what the event IS and what a traveler would
+        experience attending it. If the event is in a nearby city, note the
+        distance: 'Albuquerque, 1 hr south'. No invented details. No adjectives
+        from the prohibited list.",
+      "admission": "Free | $XX | Varies — from search results only; omit if not found",
+      "url": "URL verbatim from search results only. Do NOT construct, modify,
+        or guess URLs. Omit this field entirely if no URL appears in the results.",
+      "source_domain": "e.g. visitsantafe.com | nmphilharmonic.org"
+    }
+  ],
+  "ambient_scene": "1–2 sentences on the ongoing cultural character of this
+    destination regardless of specific ticketed events — recurring gallery scene,
+    live music venues, Saturday markets, public art walks, etc. Gives context
+    for unstructured time."
+}
+
+════════════════════════════════════════════════════════
+FORMAT B — Honest fallback (count < 2)
+════════════════════════════════════════════════════════
+
+{
+  "has_events": false,
+  "honest_assessment": "2–3 sentences describing what the cultural scene
+    actually IS for this destination type in this month.
+
+    For national_park: acknowledge the remote setting directly. Name the
+    park's always-available interpretive programs (visitor center exhibits,
+    ranger-led talks, junior ranger, evening programs at the amphitheater).
+    Note the nearest gateway town and what it reliably offers (live music
+    venue, Saturday market, brewery with local music nights).
+
+    For small_town: describe the ambient scene that exists without ticketed
+    events — a brewpub with regular live music, a gallery co-op, a farmers
+    market. Name them if confident they are real.
+
+    Never use apologetic language: 'unfortunately', 'sadly', 'limited options'.
+    The park or town is not a consolation prize — describe what it IS.",
+
+  "local_tip": "One specific actionable item: a recurring weekly event, a
+    venue with a reliable music schedule, a free NPS evening program, a
+    Saturday market. Give name and a brief access note. Omit this field if
+    nothing can be stated with confidence."
+}
+
+════════════════════════════════════════════════════════
+QUALITY RULES for FORMAT A
+════════════════════════════════════════════════════════
+
+- Maximum 5 events — do not pad
+- Source preference order: official event site > local arts council >
+  CVB/tourism board > local newspaper > aggregator (Eventbrite, Facebook last)
+- url field: verbatim from Bing results only — no construction, no guessing
+- venue_address: only if street address appears literally in search results
+- Nearby-city events: always note distance from destination
+
+════════════════════════════════════════════════════════
+STRICT PROHIBITIONS
+════════════════════════════════════════════════════════
+
+- NEVER invent event names, venues, or dates
+- NEVER construct or infer URLs not present verbatim in search results
+- NEVER treat prior-year events as current without recurrence confirmation
+- NEVER use: stunning, breathtaking, iconic, vibrant, lively, charming,
+  bustling, thriving

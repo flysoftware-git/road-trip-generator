@@ -1,0 +1,99 @@
+Generate scenic drive and viewpoint entries for the following destination.
+These entries power popup modal descriptions in an interactive road trip itinerary.
+
+Destination:  {destination_name}
+Travel dates: {dates}
+Region:       {region}
+
+════════════════════════════════════════════════════════
+WHAT QUALIFIES AS AN ENTRY
+════════════════════════════════════════════════════════
+
+The label "scenic drive" is a UI convention. Valid entries include any of:
+
+  1. Named scenic drives or byways (paved or unpaved)
+  2. Significant viewpoints reached by a short drive from the destination
+     (rim overlooks, summit pull-outs, canyon viewpoints)
+  3. Aerial or gondola experiences providing a scenic overview of the area
+  4. Day-trip drives originating from the destination (mountain passes,
+     canyon loops, historic highway segments)
+  5. Historic roads with distinctive character worth a dedicated entry
+
+Exclude: hiking trails (those belong in top_attractions), routine park
+  entrance roads that are simply the way in with no stop value of their own.
+
+════════════════════════════════════════════════════════
+Return a JSON object with EXACTLY this structure:
+════════════════════════════════════════════════════════
+
+{
+  "scenic_drives": [
+    {
+      "title": "Official or common name of the drive, viewpoint, or aerial
+        experience. This becomes the JavaScript object key and the popup
+        button label — must be unique within the destination. Keep under
+        45 characters. Use the exact commonly used name, not a paraphrase.
+        Examples: 'Zion Canyon Scenic Drive', 'Rim Drive to Rainbow Point',
+        'Free Gondola to Mountain Village', 'Kolob Canyons Road',
+        'Wolf Creek Pass Scenic Drive', 'Sandia Peak Tramway'",
+
+      "category": "drive | viewpoint | aerial | day_trip | historic",
+
+      "distance_or_duration": "e.g. '17 miles one-way' | '45-min gondola
+        round-trip' | '124-mile loop — allow a full day' |
+        '10-min drive from town center'",
+
+      "best_time": "Specific guidance for this destination and month, e.g.
+        'Early morning — hoodoos lit gold from the east before 9am' |
+        'Late afternoon for alpenglow on the peaks' |
+        'Any time — south-facing road, good light all day' |
+        'Check road conditions after October 1 — snow possible on pass'",
+
+      "description": "3–5 sentences structured as follows:
+        1. What the road or viewpoint IS — its physical character, the
+           geology or landscape it moves through, the scale of what you see.
+           Name specific named features visible from it.
+        2. Key stops, pull-outs, or named viewpoints along the way.
+           Name them. Give distances or mile markers where helpful.
+        3. One practical note: one-way sections, shuttle requirements,
+           permit needed, 4WD required, seasonal closure risk, road surface
+           quality, vehicle length restrictions, parking situation.
+        4. Why this specific travel month makes this drive worthwhile —
+           light quality, fall color, snow on peaks, fewer cars.
+
+        Write in the direct, specific voice described in the system prompt.
+        No URLs. No invented road names.",
+
+      "vehicle_requirement": "Any vehicle | High-clearance recommended |
+        4WD required | Paved — any vehicle | Gondola (no vehicle needed)"
+    }
+  ]
+}
+
+════════════════════════════════════════════════════════
+QUANTITY AND QUALITY RULES
+════════════════════════════════════════════════════════
+
+- Include 2–4 entries per destination
+- Quality over quantity — 2 richly detailed entries beat 4 thin ones
+- For destinations with a well-known named drive (Zion Canyon Scenic Drive,
+  Rim Drive, Utah Scenic Byway 12), that drive is always the first entry
+- For town-based or urban destinations (Telluride, Santa Fe, Moab):
+  include at least one day_trip drive radiating from the destination
+- For gondola/aerial entries: describe the aerial perspective itself —
+  what terrain it crosses, what summits or canyons appear below, what
+  the view looks like from the top, and any operating schedule notes
+- Viewpoint entries: give the driving distance from the nearest town,
+  describe the specific vista (compass direction, named peaks or formations
+  visible, scale), and note the parking situation
+
+════════════════════════════════════════════════════════
+STRICT PROHIBITIONS
+════════════════════════════════════════════════════════
+
+- NEVER include URLs or web addresses
+- NEVER invent road names, pass names, or viewpoint names
+- title field becomes a JS key — it must exactly match what will appear
+  on the popup button in the HTML output; keep it stable and precise
+- Do not use: stunning, breathtaking, iconic, spectacular, majestic,
+  charming, nestled, world-class

@@ -1,0 +1,34 @@
+{
+  "total": "3",
+  "limit": "3",
+  "start": "0",
+  "data": [
+    {
+      "id": "nps-zion-001",
+      "title": "Angels Landing in Autumn",
+      "credit": "National Park Service / Zion NPS",
+      "altText": "Dramatic view of Angels Landing from Zion Canyon floor in fall color",
+      "fileInfo": {
+        "url": "https://www.nps.gov/common/uploads/cropped_image/primary/1A2B3C4D-1234-ABCD-EFGH-000001A2B3C4.jpg"
+      }
+    },
+    {
+      "id": "nps-zion-002",
+      "title": "The Narrows — Virgin River Slot Canyon",
+      "credit": "National Park Service / Michael Quinn",
+      "altText": "Hikers wading through the Narrows slot canyon with towering sandstone walls",
+      "fileInfo": {
+        "url": "https://www.nps.gov/common/uploads/cropped_image/primary/2B3C4D5E-2345-BCDE-FGHI-000002B3C4D5.jpg"
+      }
+    },
+    {
+      "id": "nps-zion-003",
+      "title": "Zion Canyon Panorama from Canyon Overlook",
+      "credit": "National Park Service",
+      "altText": "Wide panoramic view of Zion Canyon from Canyon Overlook Trail",
+      "fileInfo": {
+        "url": "https://www.nps.gov/common/uploads/cropped_image/primary/3C4D5E6F-3456-CDEF-GHIJ-000003C4D5E6.jpg"
+      }
+    }
+  ]
+}

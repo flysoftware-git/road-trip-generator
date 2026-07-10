@@ -1,0 +1,132 @@
+Generate travel content for the following destination as part of a road trip itinerary.
+
+Destination:    {destination_name}
+Travel dates:   {dates}
+Trip title:     {trip_title}
+Previous stop:  {previous_destination}
+Seeds (attractions the traveler specifically intends to visit — include ALL of
+       these, do not omit any, and add further recommendations around them):
+  {seeds}
+
+════════════════════════════════════════════════════════
+Return a JSON object with EXACTLY this structure.
+All string values follow the voice and style rules in the system prompt.
+════════════════════════════════════════════════════════
+
+{
+  "expected_environment": {
+    "summary": "Lead with the single most distinctive seasonal observation for
+      this destination in this travel month — a visual, sensory, or atmospheric
+      detail that is specific to NOW rather than generic to the destination.
+      Then cover: precise temperature range day/night, crowd level vs. peak
+      season, and at least one operational note (shuttle or timed-entry
+      requirements, permit status, trail-specific conditions such as water temp
+      or snow, seasonal closures, or parking). 4–6 sentences total. Be specific
+      to the month, not generic to the destination year-round.",
+    "temperature_high_f": 72,
+    "temperature_low_f": 38,
+    "what_to_pack": ["item1", "item2", "item3", "item4"]
+  },
+
+  "getting_here": {
+    "drive_time": "e.g. 2 hrs 15 min",
+    "distance_miles": 95,
+    "route_summary": "Name the specific highways in order. Note any scenic or
+      notable character of the drive itself — a canyon corridor, a summit
+      crossing, a dramatic final approach. Include a parking or arrival note
+      if relevant. 2–3 sentences.",
+    "en_route_stops": [
+      {
+        "name": "Real, named stop — town, state park, overlook, or roadside attraction",
+        "highway_reference": "e.g. US-89 N near mile 210 | UT-12 between Escalante and Boulder",
+        "description": "One sentence: what it is and why it earns a stop. Be
+          specific — name the waterfall height, the pie, the trail distance,
+          the geological feature. Give a reason, not just a label.",
+        "time_required": "e.g. 20-min pull-out | allow 2 hrs | worth a full hour"
+      }
+    ]
+  },
+
+  "top_attractions": [
+    {
+      "name": "Real attraction, trail, or landmark name",
+      "type": "hike | attraction | viewpoint | activity | landmark",
+      "difficulty": "Easy | Moderate | Strenuous | N/A",
+      "duration": "e.g. 4–5 hrs round-trip | 45 min | half-day",
+      "must_see": false,
+      "description": "2–3 sentences. Name specific physical features: elevation
+        gain, trail length, geological formation, technical element, key
+        viewpoints along the way. Include one practical note — permit status,
+        water conditions, access restriction, best time of day, or seasonal
+        caveat. Do not describe how it makes people feel. Describe what it is.",
+      "practical_note": "One sentence covering the single most important
+        logistical detail before arrival: permit required, shuttle only,
+        reservation required, water shoes essential, cash only, closes at dusk,
+        high clearance vehicle needed, etc. Omit this field if no critical
+        logistics apply.",
+      "link_type": "hike | attraction"
+    }
+  ],
+
+  "possible_daily_schedule": {
+    "morning": "Name specific locations with realistic clock times, e.g.
+      '7:00am — start Angels Landing before heat and crowds build; chains
+      section typically has 15-min waits by 9am'. Explain the pacing logic,
+      not just the activity list.",
+    "afternoon": "Continue with specific places and realistic transitions.
+      Include drive times between sites where relevant. Name the roads.",
+    "evening": "Wind-down activity, sunset viewpoint, or dinner transition.
+      Note sunset time for the month if relevant to the activity choice."
+  },
+
+  "dinner_recommendations": [
+    {
+      "name": "Real restaurant name",
+      "cuisine": "e.g. Southwestern | New Mexican | Contemporary American | Thai | Italian | Brewery | Steakhouse",
+      "price_range": "$ | $$ | $$$ | $$$$",
+      "description": "2–3 sentences. Name 1–2 specific dishes or the kitchen's
+        signature style. Add one setting or atmosphere detail. Add a reservation
+        or access note if warranted. No superlatives — let specifics carry it.",
+      "link_type": "restaurant"
+    }
+  ]
+}
+
+════════════════════════════════════════════════════════
+QUANTITY AND DIVERSITY RULES — read carefully
+════════════════════════════════════════════════════════
+
+top_attractions:
+  - Include ALL seeds listed above without exception
+  - Add further items to reach 6–8 total
+  - Include at least one viewpoint (type: viewpoint) where geographically apt
+  - must_see: true for no more than 3 items per destination — be selective;
+    if everything is must_see, nothing is
+
+en_route_stops:
+  - Include 2–4 stops for all destinations except the first on the itinerary
+  - For the first destination where previous_destination = "none", return []
+  - All stops must be real, named places verifiably on the stated route
+  - At least one stop must be actionable (a short trail, a specific viewpoint,
+    a notable food stop) — not merely a town name to pass through
+
+dinner_recommendations:
+  - Include 5–6 restaurants total
+  - Span at least 3 distinct cuisine types
+  - Span at least 2 price tiers: at least one at $ or $$ AND at least one at $$$ or $$$$
+  - Include at least one recognisably casual / local option ($ or $$)
+  - Include at least one higher-end option ($$$ or $$$$)
+  - For remote national park destinations with few in-park options, include
+    restaurants in the nearest gateway town even if 10–20 miles from the park
+    entrance; note the distance
+
+════════════════════════════════════════════════════════
+STRICT PROHIBITIONS
+════════════════════════════════════════════════════════
+
+- NEVER include URLs, domain names, or web addresses in any field
+- NEVER invent attraction names, trail names, road names, or restaurant names
+- NEVER use: stunning, breathtaking, iconic, nestled, boasts, hidden gem,
+  world-class, charming, picturesque, vibrant, lively, majestic, spectacular
+- DO NOT describe how a traveler will feel — describe what they will
+  see, hear, do, and need to know logistically

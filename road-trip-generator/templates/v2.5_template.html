@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- PWA: Theme and display -->
+    <meta name="theme-color" content="#C0623E" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SW Road Trip" />
+    <meta name="application-name" content="SW Road Trip" />
+    <meta name="description" content="Southwest Road Trip Itinerary — Zion, Bryce, Capitol Reef, Moab, Telluride, Pagosa Springs, Santa Fe" />
+
+    <!-- PWA: Apple touch icon (terracotta map pin SVG as data URI) -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23C0623E'/%3E%3Ctext x='50%25' y='54%25' font-size='110' text-anchor='middle' dominant-baseline='middle'%3E🗺️%3C/text%3E%3C/svg%3E" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23C0623E'/%3E%3Ctext x='50%25' y='54%25' font-size='110' text-anchor='middle' dominant-baseline='middle'%3E🗺️%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
+
+    <!-- PWA: Web App Manifest (inline as data URI) -->
+    <script>
+    (function() {
+      var manifest = {
+        name: "Southwest Road Trip Itinerary",
+        short_name: "SW Road Trip",
+        description: "Interactive road trip itinerary — Zion to Santa Fe",
+        start_url: window.location.href,
+        display: "standalone",
+        background_color: "#FAFAF7",
+        theme_color: "#C0623E",
+        orientation: "portrait-primary",
+        icons: [
+          {
+            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23C0623E'/%3E%3Ctext x='50%25' y='54%25' font-size='110' text-anchor='middle' dominant-baseline='middle'%3E🗺️%3C/text%3E%3C/svg%3E",
+            sizes: "192x192",
+            type: "image/svg+xml",
+            purpose: "any maskable"
+          },
+          {
+            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23C0623E'/%3E%3Ctext x='50%25' y='54%25' font-size='300' text-anchor='middle' dominant-baseline='middle'%3E🗺️%3C/text%3E%3C/svg%3E",
+            sizes: "512x512",
+            type: "image/svg+xml",
+            purpose: "any maskable"
+          }
+        ]
+      };
+      var blob = new Blob([JSON.stringify(manifest)], {type: 'application/manifest+json'});
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = url;
+      document.head.appendChild(link);
+    })();
+    </script>
+    <title>Southwest Road Trip Itinerary — Full</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              terracotta: '#C0623E',
+              sandstone: '#F5EFE0',
+              canyon: '#8B2E0A',
+              sage: '#6B8C6B',
+              offwhite: '#FAFAF7',
+              dark: '#2C1A0E',
+              sagelt: '#e8f0e8',
+              sandlt: '#faf6ed',
+            },
+            fontFamily: {
+              display: ['Georgia', 'Cambria', 'serif'],
+              body: ['system-ui', '-apple-system', 'sans-serif'],
+            }
+          }
+        }
+      };
+    </script>
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <style>
+      :root {
+        --terracotta: #C0623E;
+        --sandstone: #F5EFE0;
+        --canyon: #8B2E0A;
+        --sage: #6B8C6B;
+        --offwhite: #FAFAF7;
+        --dark: #2C1A0E;
+      }
+      html { scroll-behavior: smooth; }
+      body { font-family: system-ui, -apple-system, sans-serif; background: var(--offwhite); color: var(--dark); }
+      h1,h2,h3,h4,h5 { font-family: Georgia, Cambria, serif; }
+
+      .tab-btn { padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 9999px; transition: all 0.2s; cursor: pointer; white-space: nowrap; border: 2px solid transparent; background: transparent; color: #6b5e50; }
+      .tab-btn:hover { background: var(--sandstone); color: var(--dark); }
+      .tab-btn.active { background: var(--terracotta); color: #fff; border-color: var(--terracotta); }
+
+      .map-tab-btn { padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 9999px; transition: all 0.2s; cursor: pointer; white-space: nowrap; border: 2px solid var(--terracotta); background: #fff; color: var(--terracotta); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+      .map-tab-btn:hover { background: var(--terracotta); color: #fff; }
+
+      .section-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 9999px; font-weight: 700; font-size: 15px; margin-bottom: 12px; }
+
+      .badge { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+      .badge-hike-strenuous { background: #dc2626; color: #fff; }
+      .badge-hike-moderate { background: #16a34a; color: #fff; }
+      .badge-hike-easy { background: #22c55e; color: #fff; }
+      .badge-scenic { background: #2563eb; color: #fff; }
+      .badge-cultural { background: #7c3aed; color: #fff; }
+      .badge-mustsee { background: #ea580c; color: #fff; }
+      .badge-activity { background: #0d9488; color: #fff; }
+      .badge-cuisine { background: var(--sandstone); color: var(--dark); border: 1px solid #d4c4a8; }
+      .badge-price { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+      .badge-reserve { background: #ea580c; color: #fff; }
+
+      .attraction-link { color: var(--terracotta); text-decoration: none; font-weight: 700; transition: all 0.15s; }
+      .attraction-link:hover { text-decoration: underline; }
+      .restaurant-link { color: var(--canyon); text-decoration: none; font-weight: 700; transition: all 0.15s; }
+      .restaurant-link:hover { text-decoration: underline; }
+
+      .notion-header-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.4);
+        border-radius: 9999px;
+        padding: 5px 14px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background 0.15s;
+        white-space: nowrap;
+      }
+      .notion-header-btn:hover { background: rgba(255,255,255,0.2); }
+
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .drive-link { cursor:pointer; color:#c0714a; text-decoration:underline; background:none; border:none; padding:0; font:inherit; }
+      .drive-link:hover { color:#a0533a; }
+
+      .weather-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin-top: 0.6rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #92400E;
+        text-decoration: none;
+        border: 1px solid #FDE68A;
+        background: #FEF3C7;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        transition: background 0.15s;
+      }
+      .weather-link:hover {
+        background: #FDE68A;
+      }
+
+      @media print {
+        .no-print { display: none !important; }
+        .print-show { display: block !important; }
+        body { background: #fff; font-size: 11pt; }
+        .dest-section { page-break-before: always; }
+        .dest-section:first-of-type { page-break-before: auto; }
+        a[href]::after { content: " (" attr(href) ")"; font-size: 9pt; color: #666; }
+        .notion-header-btn { background: none !important; border: none !important; color: var(--terracotta) !important; padding: 0 !important; font-size: 10pt !important; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      }
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+.photo-caption {
+        font-size: 0.68rem;
+        color: #6b7280;
+        text-align: center;
+        margin: 0.2rem 0 0;
+      }
+      .photo-gallery img {
+        width: 100%;
+        aspect-ratio: 3/2;
+        object-fit: cover;
+        border-radius: 0.5rem;
+        display: block;
+      }
+      .photo-gallery {display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;padding:.5rem 0 1.5rem}
+      .photo-item a { display:block; }
+      .photo-item a:hover img { opacity:0.88; transition:opacity 0.15s; }
+      .photo-item img { width:100%; aspect-ratio:3/2; object-fit:cover; border-radius:0.5rem; display:block; }
+      .photo-caption { font-size:0.68rem; color:#6b7280; text-align:center; margin:0.2rem 0 0; }
+.photo-item img{width:100%;object-fit:cover;border-radius:10px;display:block}
+.photo-item p{font-size:.72rem;color:#8B6347;font-style:italic;text-align:center;margin:.3rem 0 0}
+@media(max-width:767px){.photo-gallery{grid-template-columns:repeat(2,1fr)!important}}
+@media(max-width:479px){.photo-gallery{grid-template-columns:1fr!important}}
+@media print{.photo-gallery{display:none}}
+</style>
+</head>
+<body data-id="0" class="min-h-screen">
+    <app-icon data-id="1" hidden data-icon="compass" data-palette="Earth"></app-icon>
+
+    <!-- HEADER -->
+    <header data-id="2" class="bg-sandstone border-b border-[#d4c4a8]">
+      <div data-id="3" class="max-w-6xl mx-auto px-4 pt-8 pb-6 md:px-8 relative">
+        <div data-id="4" class="flex items-start justify-between">
+          <div data-id="5">
+            <h1 data-id="6" class="text-3xl md:text-5xl font-display text-canyon leading-tight">Southwest Road Trip</h1>
+          </div>
+          <div data-id="7" class="flex gap-2 flex-shrink-0 mt-1">
+            <button data-id="8" id="pwa-install-btn" style="display:none;" class="no-print bg-white text-terracotta border-2 border-terracotta px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 hover:bg-terracotta hover:text-white transition min-h-[44px]">
+              ⬇️ Install App
+            </button>
+            <button data-id="9" id="print-btn-a1b2" class="no-print bg-terracotta text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 hover:bg-canyon transition min-h-[44px]">
+              <span data-id="10">⬇️</span> Download to Print
+            </button>
+          </div>
+      </div>
+    </header>
+
+    <!-- ROUTE OVERVIEW MAP -->
+    <section data-id="11" class="no-print" style="background:#F5EFE0;border-bottom:1px solid #d4c4a8;padding:1.75rem 0;" id="route-overview">
+      <div data-id="12" style="max-width:72rem;margin:0 auto;padding:0 2rem;">
+        <h2 data-id="13" style="font-family:Georgia,serif;color:#8B2E0A;font-size:1.2rem;font-weight:700;margin-bottom:0.75rem;letter-spacing:0.01em;">🗺️ Route Overview</h2>
+        <div data-id="14" id="overview-map" style="height:340px;border-radius:12px;overflow:hidden;border:1.5px solid #d4c4a8;"></div>
+      </div>
+    </section>
+
+    <!-- STICKY TAB NAV -->
+    <nav data-id="16" id="tab-nav-e5f6" class="no-print sticky top-0 z-40 bg-offwhite/95 backdrop-blur border-b border-[#d4c4a8] shadow-sm">
+      <div data-id="17" class="max-w-6xl mx-auto px-4 md:px-8">
+        <div data-id="18" class="flex gap-2 py-2 overflow-x-auto items-center" id="tab-container-g7h8">
+          <button data-id="19" class="tab-btn active" data-tab="section-zion">1 · Zion</button>
+          <button data-id="20" class="tab-btn" data-tab="section-bryce">2 · Bryce</button>
+          <button data-id="21" class="tab-btn" data-tab="section-capitolreef">3 · Capitol Reef</button>
+          <button data-id="22" class="tab-btn" data-tab="section-moab">4 · Moab</button>
+          <button data-id="23" class="tab-btn" data-tab="section-telluride">5 · Telluride</button>
+          <button data-id="24" class="tab-btn" data-tab="section-pagosa">6 · Pagosa</button>
+          <button data-id="25" class="tab-btn" data-tab="section-santafe">7 · Santa Fe</button>
+          <a data-id="26" href="https://www.google.com/maps/dir/Zion+National+Park,+UT/Bryce+Canyon+National+Park,+UT/Capitol+Reef+National+Park,+UT/Moab,+UT/Telluride,+CO/Pagosa+Springs,+CO/Santa+Fe,+NM" target="_blank" rel="noopener" class="map-tab-btn">
+            🗺️ Full Route Map
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <main data-id="27" class="max-w-5xl mx-auto px-4 md:px-8 py-8 space-y-10">
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- STOP 1: ZION -->
+      <!-- ════════════════════════════════════════════ -->
+      <section data-id="28" id="section-zion" class="dest-section">
+        <div data-id="29" class="rounded-2xl overflow-hidden shadow-lg border border-[#d4c4a8]">
+          <div data-id="30" class="bg-terracotta text-white px-6 py-4 flex items-center gap-3">
+            <span data-id="31" class="bg-white text-terracotta w-9 h-9 rounded-full flex items-center justify-center font-bold text-lg">1</span>
+            <div data-id="32" class="flex-1">
+              <h2 data-id="33" class="text-xl md:text-2xl font-display">Zion National Park</h2>
+              <p data-id="34" class="text-white/80 text-sm">Utah · Oct 18</p>
+            </div>
+            <a data-id="35" href="https://app.notion.com/p/swiftsure/Zion-National-Park-301120f6445381fdbe2de1df1735baee" target="_blank" rel="noopener" class="notion-header-btn">Plans</a>
+          </div>
+          <div data-id="36" class="bg-white p-5 md:p-8 space-y-8">
+<div class="photo-gallery"><div class="photo-item"><a href="https://www.nps.gov/common/uploads/structured_data/68BFC1AC-BF96-629F-89D261D78F181C64.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://www.nps.gov/common/uploads/structured_data/68BFC1AC-BF96-629F-89D261D78F181C64.jpg" alt="The Watchman peak" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">The Watchman — NPS</p></div><div class="photo-item"><a href="https://www.nps.gov/common/uploads/structured_data/68ED8C2C-A9D3-90B2-BBC96E7A21BC3744.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://www.nps.gov/common/uploads/structured_data/68ED8C2C-A9D3-90B2-BBC96E7A21BC3744.jpg" alt="The Narrows slot canyon" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">The Narrows — NPS</p></div><div class="photo-item"><a href="https://www.nps.gov/common/uploads/structured_data/69162F54-D4AF-8695-A42F97A8F9774C19.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://www.nps.gov/common/uploads/structured_data/69162F54-D4AF-8695-A42F97A8F9774C19.jpg" alt="Towers of the Virgin" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Towers of the Virgin — NPS</p></div></div>
+
+</div>
+
+
+            <div data-id="37">
+              <div data-id="38" class="section-pill bg-amber-50 text-amber-800" style="background:#fef9ee;color:#92400e;">🌡️ Expected Environment</div>
+              <div data-id="39" class="bg-amber-50 rounded-xl p-4 border border-amber-200" style="background:#fefce8;border-color:#fde68a;">
+                <p data-id="40" class="text-sm text-dark/80 leading-relaxed">Peak cottonwood fall color in the canyon — brilliant gold against red canyon walls. Expect 60–80°F days and 35–45°F nights. The park shuttle is required into Zion Canyon; no private vehicles. Noticeably fewer crowds than summer. Water in The Narrows will be cool (~55°F) — wetsuit rentals available in Springdale.</p>
+                <div data-id="41" style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #FDE68A;">
+                  <div data-id="42" style="font-size:0.72rem;font-weight:800;color:#92400E;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:0.45rem;">🎭 Cultural Events — Oct 18</div>
+                  <ul data-id="43" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0.4rem;">
+                    <li data-id="44" style="font-size:0.8rem;color:#6b7280;font-style:italic;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="45">📅</span><span data-id="46">No major ticketed performances in the Springdale/Zion area in October — the town is small and oriented around outdoor recreation. Check for occasional live music at local Springdale restaurants and the Zion Canyon Brew Pub. <a data-id="47" href="https://zionpark.com/events" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Check local calendar</a></span></li>
+                  </ul>
+                </div>
+                <a data-id="48" href="https://www.google.com/search?q=weather+Zion+National+Park+Utah" target="_blank" rel="noopener" class="weather-link">🌤️ Current Weather</a>
+              </div>
+            </div>
+
+            <div data-id="49">
+              <div data-id="50" class="section-pill bg-sagelt text-sage">🏔️ Top Attractions</div>
+              <div data-id="51" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div data-id="52" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="53" class="flex items-start gap-2">
+                    <span data-id="54" class="text-xl">🏔️</span>
+                    <div data-id="55">
+                      <a data-id="56" href="https://www.alltrails.com/trail/us/utah/angels-landing-trail" target="_blank" rel="noopener" class="attraction-link">Angels Landing</a>
+                      <span data-id="57" class="badge badge-hike-strenuous ml-2">Hike · Strenuous</span>
+                      <p data-id="58" class="text-sm text-dark/70 mt-1">Iconic chain-assisted summit scramble above Zion Canyon — one of America's most thrilling hikes. Permit required via recreation.gov.</p>
+                    </div>
+                  </div>
+                </div>
+                <div data-id="59" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="60" class="flex items-start gap-2">
+                    <span data-id="61" class="text-xl">💧</span>
+                    <div data-id="62">
+                      <a data-id="63" href="https://www.alltrails.com/trail/us/utah/the-narrows-zion-national-park" target="_blank" rel="noopener" class="attraction-link">The Narrows</a>
+                      <span data-id="64" class="badge badge-hike-moderate ml-2">Hike · Moderate</span>
+                      <p data-id="65" class="text-sm text-dark/70 mt-1">Wade up the Virgin River through soaring 1,000-ft slot canyon walls; rent water shoes in Springdale.</p>
+                    </div>
+                  </div>
+                </div>
+                <div data-id="66" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="67" class="flex items-start gap-2">
+                    <span data-id="68" class="text-xl">🌿</span>
+                    <div data-id="69">
+                      <a data-id="70" href="https://www.alltrails.com/trail/us/utah/emerald-pools-trail" target="_blank" rel="noopener" class="attraction-link">Emerald Pools Trail</a>
+                      <span data-id="71" class="badge badge-hike-easy ml-2">Hike · Easy</span>
+                      <p data-id="72" class="text-sm text-dark/70 mt-1">Lush hanging gardens and cascading waterfalls; the Lower Pool is stroller-accessible.</p>
+                    </div>
+                  </div>
+                </div>
+                <div data-id="73" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="74" class="flex items-start gap-2">
+                    <span data-id="75" class="text-xl">🚌</span>
+                    <div data-id="76">
+                      <button data-id="77" class="drive-link attraction-link" data-drive-title="Zion Canyon Scenic Drive" data-drive-prompt="">Zion Canyon Scenic Drive</button>
+                      <span data-id="78" class="badge badge-scenic ml-2">Scenic Drive</span>
+                      <p data-id="79" class="text-sm text-dark/70 mt-1">Shuttle-served 6-mile corridor with trailhead access, towering canyon walls, and the Temple of Sinawava.</p>
+                    </div>
+                  </div>
+                </div>
+                <div data-id="80" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="81" class="flex items-start gap-2">
+                    <span data-id="82" class="text-xl">🌄</span>
+                    <div data-id="83">
+                      <a data-id="84" href="https://www.alltrails.com/trail/us/utah/canyon-overlook-trail" target="_blank" rel="noopener" class="attraction-link">Canyon Overlook Trail</a>
+                      <span data-id="85" class="badge badge-hike-easy ml-2">Hike · Easy</span>
+                      <p data-id="86" class="text-sm text-dark/70 mt-1">Short 1-mile ridge walk above Pine Creek Canyon with spectacular views — ideal at sunrise.</p>
+                    </div>
+                  </div>
+                </div>
+                <div data-id="87" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="88" class="flex items-start gap-2">
+                    <span data-id="89" class="text-xl">🗻</span>
+                    <div data-id="90">
+                      <button data-id="91" class="drive-link attraction-link" data-drive-title="Kolob Canyons Scenic Drive" data-drive-prompt="">Kolob Canyons</button>
+                      <span data-id="92" class="badge badge-scenic ml-2">Scenic Drive</span>
+                      <p data-id="93" class="text-sm text-dark/70 mt-1">Quieter northwest section of the park; dramatic red mesa fins and the Timber Creek Overlook.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div data-id="94">
+              <div data-id="95" class="section-pill bg-sandstone text-dark">📅 Possible Daily Schedule</div>
+              <div data-id="96" class="bg-sandlt rounded-xl p-4 md:p-6 space-y-5">
+                <div data-id="97">
+                  <h4 data-id="98" class="font-bold text-canyon text-sm mb-3">Day 1</h4>
+                  <div data-id="99" class="space-y-2 ml-2">
+                    <div data-id="100" class="flex items-start gap-3"><span data-id="101" class="text-lg">☀️</span><div data-id="102"><span data-id="103" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="104" class="text-sm">Arrive Springdale; pick up water shoes; board shuttle for Zion Canyon Scenic Drive</p></div></div>
+                    <div data-id="105" class="flex items-start gap-3"><span data-id="106" class="text-lg">🌤️</span><div data-id="107"><span data-id="108" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="109" class="text-sm">Emerald Pools Lower + Middle loop</p></div></div>
+                    <div data-id="110" class="flex items-start gap-3"><span data-id="111" class="text-lg">🌙</span><div data-id="112"><span data-id="113" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="114" class="text-sm">Explore Springdale; dinner at Switchback Grille or Spotted Dog Café</p></div></div>
+                </div>
+                <div data-id="115">
+                  <h4 data-id="116" class="font-bold text-canyon text-sm mb-3">Day 2</h4>
+                  <div data-id="117" class="space-y-2 ml-2">
+                    <div data-id="118" class="flex items-start gap-3"><span data-id="119" class="text-lg">☀️</span><div data-id="120"><span data-id="121" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="122" class="text-sm">Angels Landing (start by 7am; permit required — book at recreation.gov)</p></div></div>
+                    <div data-id="123" class="flex items-start gap-3"><span data-id="124" class="text-lg">🌤️</span><div data-id="125"><span data-id="126" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="127" class="text-sm">The Narrows from the bottom (2–4 hrs; turnaround at Wall Street)</p></div></div>
+                    <div data-id="128" class="flex items-start gap-3"><span data-id="129" class="text-lg">🌙</span><div data-id="130"><span data-id="131" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="132" class="text-sm">Browse Springdale galleries; dinner at Bit &amp; Spur</p></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div data-id="133">
+              <div data-id="134" class="section-pill bg-white text-dark border border-[#d4c4a8]">🍽️ Dinner Recommendations</div>
+              <div data-id="135" class="space-y-3">
+                <div data-id="136" class="bg-white rounded-xl p-4 border border-[#e8e0d0] flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div data-id="137" class="flex-1">
+                    <a data-id="138" href="https://www.google.com/maps/search/Switchback+Grille+Springdale+Utah" target="_blank" rel="noopener" class="restaurant-link">Switchback Grille</a>
+                    <span data-id="139" class="badge badge-cuisine ml-2">Steakhouse</span>
+                    <span data-id="140" class="badge badge-price ml-1">$$$$</span>
+                    <span data-id="141" class="badge badge-reserve ml-1">Reserve Recommended</span>
+                    <p data-id="142" class="text-sm text-dark/70 mt-1">USDA Prime hand-selected beef and daily fresh fish at the foot of the Watchman formation; extensive wine list.</p>
+                  </div>
+                </div>
+                <div data-id="143" class="bg-white rounded-xl p-4 border border-[#e8e0d0] flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div data-id="144" class="flex-1">
+                    <a data-id="145" href="https://www.google.com/maps/search/Spotted+Dog+Cafe+Springdale+Utah" target="_blank" rel="noopener" class="restaurant-link">Spotted Dog Café</a>
+                    <span data-id="146" class="badge badge-cuisine ml-2">Contemporary American</span>
+                    <span data-id="147" class="badge badge-price ml-1">$$$$</span>
+                    <p data-id="148" class="text-sm text-dark/70 mt-1">Farm-fresh bistro near the park entrance; celebrated lamb shank and house-crafted sauces.</p>
+                  </div>
+                </div>
+                <div data-id="149" class="bg-white rounded-xl p-4 border border-[#e8e0d0] flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div data-id="150" class="flex-1">
+                    <a data-id="151" href="https://www.google.com/maps/search/Bit+and+Spur+Restaurant+Saloon+Springdale+Utah" target="_blank" rel="noopener" class="restaurant-link">Bit &amp; Spur Restaurant &amp; Saloon</a>
+                    <span data-id="152" class="badge badge-cuisine ml-2">Southwestern</span>
+                    <span data-id="153" class="badge badge-price ml-1">$$$</span>
+                    <p data-id="154" class="text-sm text-dark/70 mt-1">Lively saloon with bold Southwestern flavors; don't miss the Chocolate Pecan Brownie Crème Brûlée.</p>
+                  </div>
+                </div>
+                <div data-id="155" class="bg-white rounded-xl p-4 border border-[#e8e0d0] flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div data-id="156" class="flex-1">
+                    <a data-id="157" href="https://www.google.com/maps/search/Oscars+Cafe+Springdale+Utah" target="_blank" rel="noopener" class="restaurant-link">Oscar's Cafe</a>
+                    <span data-id="158" class="badge badge-cuisine ml-2">Mexican/American</span>
+                    <span data-id="159" class="badge badge-price ml-1">$$</span>
+                    <p data-id="160" class="text-sm text-dark/70 mt-1">Springdale institution since 1993; huge breakfast burritos and green chile smothered plates — best value in town. Cash-friendly, no reservations needed.</p>
+                  </div>
+                </div>
+                <div data-id="161" class="bg-white rounded-xl p-4 border border-[#e8e0d0] flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div data-id="162" class="flex-1">
+                    <a data-id="163" href="https://www.google.com/maps/search/Zion+Pizza+Noodle+Springdale+Utah" target="_blank" rel="noopener" class="restaurant-link">Zion Pizza &amp; Noodle Co</a>
+                    <span data-id="164" class="badge badge-cuisine ml-2">Pizza/Italian</span>
+                    <span data-id="165" class="badge badge-price ml-1">$$</span>
+                    <p data-id="166" class="text-sm text-dark/70 mt-1">Quirky converted church with craft beer and wood-fired pies — a beloved local hangout after a long hike day.</p>
+                  </div>
+              </div>
+              <p data-id="167" class="text-xs text-dark/50 mt-3 italic">Options range from ~$15–$100/person before tax &amp; tip.</p>
+            </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- STOP 2: BRYCE CANYON -->
+      <!-- ════════════════════════════════════════════ -->
+      <section data-id="168" id="section-bryce" class="dest-section">
+        <div data-id="169" class="rounded-2xl overflow-hidden shadow-lg border border-[#d4c4a8]">
+          <div data-id="170" class="bg-terracotta text-white px-6 py-4 flex items-center gap-3">
+            <span data-id="171" class="bg-white text-terracotta w-9 h-9 rounded-full flex items-center justify-center font-bold text-lg">2</span>
+            <div data-id="172" class="flex-1">
+              <h2 data-id="173" class="text-xl md:text-2xl font-display">Bryce Canyon</h2>
+              <p data-id="174" class="text-white/80 text-sm">Utah · Oct 19–20</p>
+            </div>
+            <a data-id="175" href="https://app.notion.com/p/swiftsure/Bryce-Canyon-301120f64453814daafed98d015cc050" target="_blank" rel="noopener" class="notion-header-btn">Plans</a>
+          </div>
+          <div data-id="176" class="bg-white p-5 md:p-8 space-y-8">
+<div class="photo-gallery"><div class="photo-item"><a href="https://www.nps.gov/common/uploads/structured_data/61F08520-E14F-18F2-BF5F3D89482631BD.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://www.nps.gov/common/uploads/structured_data/61F08520-E14F-18F2-BF5F3D89482631BD.jpg" alt="Bryce Amphitheater at sunrise" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Bryce Amphitheater — NPS</p></div><div class="photo-item"><a href="https://www.nps.gov/common/uploads/structured_data/60400EC2-B3DA-DAD5-18BF97EA3403B692.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://www.nps.gov/common/uploads/structured_data/60400EC2-B3DA-DAD5-18BF97EA3403B692.jpg" alt="Queen's Garden Trail hoodoos" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Queen's Garden Trail — NPS</p></div><div class="photo-item"><a href="https://www.nps.gov/common/uploads/structured_data/600067EF-E1B2-18B1-6120394EC23521DB.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://www.nps.gov/common/uploads/structured_data/600067EF-E1B2-18B1-6120394EC23521DB.jpg" alt="Winter sunrise at Sunset Point" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Sunset Point at Dawn — NPS</p></div></div>
+
+</div>
+
+
+            <div data-id="177">
+              <div data-id="178" class="section-pill bg-sandstone text-dark">🚗 Getting Here</div>
+              <div data-id="179" class="bg-sandlt rounded-xl p-4 border border-[#d4c4a8]">
+                <div data-id="180" class="flex flex-wrap items-center gap-3 mb-2">
+                  <span data-id="181" class="font-bold text-dark">Zion NP</span>
+                  <span data-id="182" class="text-terracotta font-bold">→</span>
+                  <span data-id="183" class="font-bold text-dark">Bryce Canyon</span>
+                  <span data-id="184" class="badge badge-price">84 miles</span>
+                  <span data-id="185" class="badge badge-price">~2 hrs</span>
+                </div>
+                <p data-id="186" class="text-sm italic text-dark/60 mb-3">Via US-89 N through red rock country</p>
+                <a data-id="187" href="https://www.google.com/maps/dir/Zion+National+Park,+UT/Red+Canyon,+UT/Panguitch,+UT/Bryce+Canyon+National+Park,+UT" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm font-semibold text-terracotta hover:underline">Open in Google Maps →</a>
+                <div data-id="188" class="mt-3 text-sm">
+                  <div data-id="189" class="font-bold text-dark/70 text-xs uppercase tracking-wide mb-1">🛑 Can't-Miss En Route</div>
+                  <ul data-id="190" class="space-y-1 text-dark/80">
+                    <li data-id="191">🌄 <strong data-id="192">Red Canyon</strong> — Just 7 miles before Bryce on UT-12; pull over among pink hoodoo spires for free. Often more vibrant in color than Bryce itself.</li>
+                    <li data-id="193">🏘️ <strong data-id="194">Panguitch</strong> — Charming brick pioneer town on US-89; good fuel and pie stop at Cowboy's Smokehouse.</li>
+                  </ul>
+                </div>
+            </div>
+
+            <div data-id="195">
+              <div data-id="196" class="section-pill bg-amber-50 text-amber-800" style="background:#fef9ee;color:#92400e;">🌡️ Expected Environment</div>
+              <div data-id="197" class="bg-amber-50 rounded-xl p-4 border border-amber-200" style="background:#fefce8;border-color:#fde68a;">
+                <p data-id="198" class="text-sm text-dark/80 leading-relaxed">High elevation (8,000–9,115 ft) means autumn arrives early and with force. Expect 40–55°F days and 25–35°F nights — bring a warm mid-layer even for short hikes. Light snow is entirely possible; hoodoos dusted in snow are spectacular. Skies are exceptionally clear for dark-sky stargazing. The low October sun angle makes hoodoo colors unusually vivid — prime photography conditions all day.</p>
+                <div data-id="199" style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #FDE68A;">
+                  <div data-id="200" style="font-size:0.72rem;font-weight:800;color:#92400E;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:0.45rem;">🎭 Cultural Events — Oct 19–20</div>
+                  <ul data-id="201" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0.4rem;">
+                    <li data-id="202" style="font-size:0.8rem;color:#6b7280;font-style:italic;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="203">📅</span><span data-id="204">Bryce Canyon City has limited performance venues. The park itself occasionally hosts ranger astronomy programs on clear October nights — free with park admission. Check the NPS events calendar for scheduled programs. <a data-id="205" href="https://www.nps.gov/brca/planyourvisit/calendar.htm" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Check local calendar</a></span></li>
+                  </ul>
+                </div>
+                <a data-id="206" href="https://www.google.com/search?q=weather+Bryce+Canyon+National+Park+Utah" target="_blank" rel="noopener" class="weather-link">🌤️ Current Weather</a>
+              </div>
+            </div>
+
+            <div data-id="207">
+              <div data-id="208" class="section-pill bg-sagelt text-sage">🏔️ Top Attractions</div>
+              <div data-id="209" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div data-id="210" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="211" class="flex items-start gap-2"><span data-id="212" class="text-xl">🌅</span><div data-id="213">
+                    <button data-id="214" class="drive-link attraction-link" data-drive-title="Sunrise &amp; Sunset Point">Sunrise &amp; Sunset Point</button>
+                    <span data-id="215" class="badge badge-mustsee ml-2">Must-See</span>
+                    <p data-id="216" class="text-sm text-dark/70 mt-1">The park's most beloved viewpoints; hoodoos glow brilliant orange and pink at golden hour.</p>
+                  </div></div>
+                </div>
+                <div data-id="217" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="218" class="flex items-start gap-2"><span data-id="219" class="text-xl">🔴</span><div data-id="220">
+                    <a data-id="221" href="https://www.alltrails.com/trail/us/utah/navajo-loop-and-queens-garden-trail" target="_blank" rel="noopener" class="attraction-link">Navajo Loop Trail</a>
+                    <span data-id="222" class="badge badge-hike-moderate ml-2">Hike · Moderate</span>
+                    <p data-id="223" class="text-sm text-dark/70 mt-1">Descend into the amphitheater past Wall Street's towering pines and iconic Thor's Hammer.</p>
+                  </div></div>
+                </div>
+                <div data-id="224" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="225" class="flex items-start gap-2"><span data-id="226" class="text-xl">🌸</span><div data-id="227">
+                    <a data-id="228" href="https://www.alltrails.com/trail/us/utah/navajo-loop-and-queens-garden-trail" target="_blank" rel="noopener" class="attraction-link">Queens Garden Trail</a>
+                    <span data-id="229" class="badge badge-hike-moderate ml-2">Hike · Moderate</span>
+                    <p data-id="230" class="text-sm text-dark/70 mt-1">The most scenic route into the hoodoos; combine with Navajo Loop for a classic 3-mile circuit.</p>
+                  </div></div>
+                </div>
+                <div data-id="231" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="232" class="flex items-start gap-2"><span data-id="233" class="text-xl">🚗</span><div data-id="234">
+                    <button data-id="235" class="drive-link attraction-link" data-drive-title="Rim Drive to Rainbow Point" data-drive-prompt="">Rim Drive to Rainbow Point</button>
+                    <span data-id="236" class="badge badge-scenic ml-2">Scenic Drive</span>
+                    <p data-id="237" class="text-sm text-dark/70 mt-1">18-mile one-way drive with 13 overlooks; drive from Rainbow Point back north for best views.</p>
+                  </div></div>
+                </div>
+                <div data-id="238" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="239" class="flex items-start gap-2"><span data-id="240" class="text-xl">🌠</span><div data-id="241">
+                    <a data-id="242" href="https://en.wikipedia.org/wiki/Bryce_Canyon_National_Park#Astronomy" target="_blank" rel="noopener" class="attraction-link">Dark Sky Stargazing</a>
+                    <span data-id="243" class="badge badge-activity ml-2">Activity</span>
+                    <p data-id="244" class="text-sm text-dark/70 mt-1">Bryce is an International Dark Sky Park; ranger-led astronomy programs most summer evenings — free with park entry.</p>
+                  </div></div>
+                </div>
+                <div data-id="245" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="246" class="flex items-start gap-2"><span data-id="247" class="text-xl">🦅</span><div data-id="248">
+                    <button data-id="249" class="drive-link attraction-link" data-drive-title="Bryce Point">Bryce Point</button>
+                    <span data-id="250" class="badge badge-mustsee ml-2">Must-See</span>
+                    <p data-id="251" class="text-sm text-dark/70 mt-1">Panoramic viewpoint of the entire Silent City amphitheater; stunning at sunset.</p>
+                  </div></div>
+              </div>
+            </div>
+
+            <div data-id="252">
+              <div data-id="253" class="section-pill bg-sandstone text-dark">📅 Possible Daily Schedule</div>
+              <div data-id="254" class="bg-sandlt rounded-xl p-4 md:p-6 space-y-5">
+                <div data-id="255">
+                  <h4 data-id="256" class="font-bold text-canyon text-sm mb-3">Day 1</h4>
+                  <div data-id="257" class="space-y-2 ml-2">
+                    <div data-id="258" class="flex items-start gap-3"><span data-id="259" class="text-lg">☀️</span><div data-id="260"><span data-id="261" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="262" class="text-sm">Drive from Zion (~2 hrs); stop at Red Canyon (free) en route</p></div></div>
+                    <div data-id="263" class="flex items-start gap-3"><span data-id="264" class="text-lg">🌤️</span><div data-id="265"><span data-id="266" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="267" class="text-sm">Rim Drive to Rainbow Point; work back through overlooks</p></div></div>
+                    <div data-id="268" class="flex items-start gap-3"><span data-id="269" class="text-lg">🌙</span><div data-id="270"><span data-id="271" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="272" class="text-sm">Bryce Point at sunset; dinner in Tropic or at the Lodge</p></div></div>
+                </div>
+                <div data-id="273">
+                  <h4 data-id="274" class="font-bold text-canyon text-sm mb-3">Day 2</h4>
+                  <div data-id="275" class="space-y-2 ml-2">
+                    <div data-id="276" class="flex items-start gap-3"><span data-id="277" class="text-lg">☀️</span><div data-id="278"><span data-id="279" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="280" class="text-sm">Arrive Sunrise Point before dawn (5:30–6am in summer)</p></div></div>
+                    <div data-id="281" class="flex items-start gap-3"><span data-id="282" class="text-lg">🌤️</span><div data-id="283"><span data-id="284" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="285" class="text-sm">Navajo Loop + Queens Garden combo trail (~3 miles, 2–3 hrs)</p></div></div>
+                    <div data-id="286" class="flex items-start gap-3"><span data-id="287" class="text-lg">🌙</span><div data-id="288"><span data-id="289" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="290" class="text-sm">Ranger stargazing program; dinner at Stone Hearth Grille</p></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div data-id="291">
+              <div data-id="292" class="section-pill bg-white text-dark border border-[#d4c4a8]">🍽️ Dinner Recommendations</div>
+              <div data-id="293" class="space-y-3">
+                <div data-id="294" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="295" href="https://www.google.com/maps/search/Stone+Hearth+Grille+Tropic+Utah" target="_blank" rel="noopener" class="restaurant-link">Stone Hearth Grille</a>
+                  <span data-id="296" class="badge badge-cuisine ml-2">American Grill</span>
+                  <span data-id="297" class="badge badge-price ml-1">$$$$</span>
+                  <p data-id="298" class="text-sm text-dark/70 mt-1">Secluded gem in Tropic with standout steaks and fresh trout in a warm, rustic setting.</p>
+                </div>
+                <div data-id="299" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="300" href="https://www.google.com/maps/search/Lodge+at+Bryce+Canyon+Restaurant" target="_blank" rel="noopener" class="restaurant-link">The Lodge at Bryce Canyon Restaurant</a>
+                  <span data-id="301" class="badge badge-cuisine ml-2">American</span>
+                  <span data-id="302" class="badge badge-price ml-1">$$$</span>
+                  <p data-id="303" class="text-sm text-dark/70 mt-1">The only dining inside the park; grilled ribeye, elk chili, and salmon steps from the canyon rim.</p>
+                </div>
+                <div data-id="304" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="305" href="https://www.google.com/maps/search/Bryce+Canyon+Pines+Restaurant+Utah" target="_blank" rel="noopener" class="restaurant-link">Bryce Canyon Pines Restaurant</a>
+                  <span data-id="306" class="badge badge-cuisine ml-2">American/Grill</span>
+                  <span data-id="307" class="badge badge-price ml-1">$$$</span>
+                  <p data-id="308" class="text-sm text-dark/70 mt-1">Local institution known for award-winning trout and legendary homemade pies.</p>
+                </div>
+                <div data-id="309" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="310" href="https://www.google.com/maps/search/Ebenezers+Barn+Grill+Bryce+Canyon+Utah" target="_blank" rel="noopener" class="restaurant-link">Ebenezer's Barn &amp; Grill</a>
+                  <span data-id="311" class="badge badge-cuisine ml-2">Steakhouse/BBQ</span>
+                  <span data-id="312" class="badge badge-price ml-1">$$</span>
+                  <p data-id="313" class="text-sm text-dark/70 mt-1">All-you-can-eat cowboy BBQ dinner with live Western music — fun, filling, and surprisingly good. Book ahead in summer.</p>
+                </div>
+              </div>
+              <p data-id="314" class="text-xs text-dark/50 mt-3 italic">Options range from ~$15–$100/person before tax &amp; tip.</p>
+            </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- STOP 3: CAPITOL REEF -->
+      <!-- ════════════════════════════════════════════ -->
+      <section data-id="315" id="section-capitolreef" class="dest-section">
+        <div data-id="316" class="rounded-2xl overflow-hidden shadow-lg border border-[#d4c4a8]">
+          <div data-id="317" class="bg-terracotta text-white px-6 py-4 flex items-center gap-3">
+            <span data-id="318" class="bg-white text-terracotta w-9 h-9 rounded-full flex items-center justify-center font-bold text-lg">3</span>
+            <div data-id="319" class="flex-1">
+              <h2 data-id="320" class="text-xl md:text-2xl font-display">Capitol Reef</h2>
+              <p data-id="321" class="text-white/80 text-sm">Utah · Oct 21</p>
+            </div>
+            <a data-id="322" href="https://app.notion.com/p/swiftsure/Capital-Reef-National-Park-301120f6445381b9b3e0ff32b69b94be" target="_blank" rel="noopener" class="notion-header-btn">Plans</a>
+          </div>
+          <div data-id="323" class="bg-white p-5 md:p-8 space-y-8">
+<div class="photo-gallery"><div class="photo-item"><a href="https://www.nps.gov/common/uploads/structured_data/3C82E3C7-1DD8-B71B-0B4181834EE46AED.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://www.nps.gov/common/uploads/structured_data/3C82E3C7-1DD8-B71B-0B4181834EE46AED.jpg" alt="Gifford Homestead barn" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Gifford Homestead — NPS</p></div><div class="photo-item"><a href="https://www.nps.gov/common/uploads/structured_data/3C82E4FB-1DD8-B71B-0B8614194A6D08FA.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://www.nps.gov/common/uploads/structured_data/3C82E4FB-1DD8-B71B-0B8614194A6D08FA.jpg" alt="Hiker at Hickman Bridge arch" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Hickman Bridge — NPS</p></div><div class="photo-item"><a href="https://www.nps.gov/common/uploads/structured_data/3C82E601-1DD8-B71B-0BCB6A40DE28B1CB.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://www.nps.gov/common/uploads/structured_data/3C82E601-1DD8-B71B-0BCB6A40DE28B1CB.jpg" alt="Strike Valley Waterpocket Fold" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Waterpocket Fold — NPS</p></div></div>
+
+</div>
+
+
+            <div data-id="324">
+              <div data-id="325" class="section-pill bg-sandstone text-dark">🚗 Getting Here</div>
+              <div data-id="326" class="bg-sandlt rounded-xl p-4 border border-[#d4c4a8]">
+                <div data-id="327" class="flex flex-wrap items-center gap-3 mb-2">
+                  <span data-id="328" class="font-bold text-dark">Bryce Canyon</span>
+                  <span data-id="329" class="text-terracotta font-bold">→</span>
+                  <span data-id="330" class="font-bold text-dark">Capitol Reef</span>
+                  <span data-id="331" class="badge badge-price">122 miles</span>
+                  <span data-id="332" class="badge badge-price">~2.5 hrs (allow all day)</span>
+                </div>
+                <p data-id="333" class="text-sm italic text-dark/60 mb-3">Via Scenic Byway 12 (UT-12) — one of the most beautiful highways in the USA; do not skip</p>
+                <a data-id="334" href="https://www.google.com/maps/dir/Bryce+Canyon+National+Park,+UT/Kodachrome+Basin+State+Park,+UT/Escalante,+UT/Calf+Creek+Recreation+Area,+UT/Boulder,+UT/Capitol+Reef+National+Park,+UT" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm font-semibold text-terracotta hover:underline">Open in Google Maps →</a>
+                <div data-id="335" class="mt-3 text-sm">
+                  <div data-id="336" class="font-bold text-dark/70 text-xs uppercase tracking-wide mb-1">🛑 Can't-Miss En Route</div>
+                  <ul data-id="337" class="space-y-1 text-dark/80">
+                    <li data-id="338">🛤️ <strong data-id="339">The Hogback</strong> — Narrow ridge on Byway 12 with sheer drop-offs on both sides; pull off and walk the ridge on foot.</li>
+                    <li data-id="340">💧 <strong data-id="341">Calf Creek Falls Trailhead</strong> — 5.5-mile round trip to a 126-ft waterfall in slickrock canyon (allow 3 hrs). Worth every step.</li>
+                    <li data-id="342">🏛️ <strong data-id="343">Anasazi State Park Museum, Boulder</strong> — Remarkable 1,000-year-old Native American village site; 20-min stop, deeply worth it.</li>
+                    <li data-id="344">🌅 <strong data-id="345">Kodachrome Basin State Park</strong> — 20-min detour south of Cannonville; bizarre stone spires in a vivid desert basin.</li>
+                  </ul>
+                </div>
+            </div>
+
+            <div data-id="346">
+              <div data-id="347" class="section-pill bg-amber-50 text-amber-800" style="background:#fef9ee;color:#92400e;">🌡️ Expected Environment</div>
+              <div data-id="348" class="bg-amber-50 rounded-xl p-4 border border-amber-200" style="background:#fefce8;border-color:#fde68a;">
+                <p data-id="349" class="text-sm text-dark/80 leading-relaxed">Mild and delightfully uncrowded — October is one of the best months to visit. Expect 55–75°F days and cool nights around 35–45°F. The Fruita orchards may still have late-season apples and pears to pick for free. Brief afternoon thunderstorms are possible but typically short-lived. Almost no crowds — you may have entire trails to yourself.</p>
+                <div data-id="350" style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #FDE68A;">
+                  <div data-id="351" style="font-size:0.72rem;font-weight:800;color:#92400E;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:0.45rem;">🎭 Cultural Events — Oct 21</div>
+                  <ul data-id="352" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0.4rem;">
+                    <li data-id="353" style="font-size:0.8rem;color:#6b7280;font-style:italic;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="354">📅</span><span data-id="355">Torrey and Capitol Reef are deeply remote — no commercial performance venues nearby. The area is best enjoyed for its silence. The nearest cultural scene is 2+ hours away in Moab or Salt Lake City. <a data-id="356" href="https://www.nps.gov/care/planyourvisit/calendar.htm" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Check local calendar</a></span></li>
+                  </ul>
+                </div>
+                <a data-id="357" href="https://www.google.com/search?q=weather+Capitol+Reef+National+Park+Utah" target="_blank" rel="noopener" class="weather-link">🌤️ Current Weather</a>
+              </div>
+            </div>
+
+            <div data-id="358">
+              <div data-id="359" class="section-pill bg-sagelt text-sage">🏔️ Top Attractions</div>
+              <div data-id="360" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div data-id="361" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="362" class="flex items-start gap-2"><span data-id="363" class="text-xl">🛣️</span><div data-id="364">
+                    <button data-id="365" class="drive-link attraction-link" data-drive-title="Utah Scenic Byway 12" data-drive-prompt="">Scenic Byway 12 (en route)</button>
+                    <span data-id="366" class="badge badge-scenic ml-2">Scenic Drive</span>
+                    <p data-id="367" class="text-sm text-dark/70 mt-1">World-class highway through Escalante, Boulder, and Anasazi country; stop at Head of the Rocks overlook — breathtaking.</p>
+                  </div></div>
+                </div>
+                <div data-id="368" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="369" class="flex items-start gap-2"><span data-id="370" class="text-xl">🌉</span><div data-id="371">
+                    <a data-id="372" href="https://www.alltrails.com/trail/us/utah/hickman-bridge-trail" target="_blank" rel="noopener" class="attraction-link">Hickman Bridge Trail</a>
+                    <span data-id="373" class="badge badge-hike-easy ml-2">Hike · Easy</span>
+                    <p data-id="374" class="text-sm text-dark/70 mt-1">Easy 2-mile round-trip to a 133-foot natural bridge — the park's most rewarding short hike.</p>
+                  </div></div>
+                </div>
+                <div data-id="375" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="376" class="flex items-start gap-2"><span data-id="377" class="text-xl">🪨</span><div data-id="378">
+                    <a data-id="379" href="https://en.wikipedia.org/wiki/Fremont_culture" target="_blank" rel="noopener" class="attraction-link">Fremont Petroglyphs</a>
+                    <span data-id="380" class="badge badge-cultural ml-2">Cultural</span>
+                    <p data-id="381" class="text-sm text-dark/70 mt-1">Ancient rock art panels along UT-24; pull-off viewpoint with interpretive signage.</p>
+                  </div></div>
+                </div>
+                <div data-id="382" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="383" class="flex items-start gap-2"><span data-id="384" class="text-xl">🍎</span><div data-id="385">
+                    <a data-id="386" href="https://en.wikipedia.org/wiki/Capitol_Reef_National_Park#Fruita" target="_blank" rel="noopener" class="attraction-link">Fruita Historic District</a>
+                    <span data-id="387" class="badge badge-activity ml-2">Activity</span>
+                    <p data-id="388" class="text-sm text-dark/70 mt-1">Pioneer orchard with 2,700+ fruit trees; pick-your-own cherries, peaches, and apples in season.</p>
+                  </div></div>
+                </div>
+                <div data-id="389" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="390" class="flex items-start gap-2"><span data-id="391" class="text-xl">🏜️</span><div data-id="392">
+                    <a data-id="393" href="https://www.alltrails.com/trail/us/utah/grand-wash-trail" target="_blank" rel="noopener" class="attraction-link">Grand Wash Trail</a>
+                    <span data-id="394" class="badge badge-hike-easy ml-2">Hike · Easy</span>
+                    <p data-id="395" class="text-sm text-dark/70 mt-1">Flat canyon-floor walk between towering red walls; serene, crowd-free, and beautiful.</p>
+                  </div></div>
+                </div>
+                <div data-id="396" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="397" class="flex items-start gap-2"><span data-id="398" class="text-xl">⛪</span><div data-id="399">
+                    <button data-id="400" class="drive-link attraction-link" data-drive-title="Capitol Reef Scenic Drive" data-drive-prompt="">Capitol Reef Scenic Drive</button>
+                    <span data-id="401" class="badge badge-scenic ml-2">Scenic Drive</span>
+                    <p data-id="402" class="text-sm text-dark/70 mt-1">8-mile paved park road past Capitol Dome, the Waterpocket Fold, and a historic pioneer cabin.</p>
+                  </div></div>
+              </div>
+            </div>
+
+            <div data-id="403">
+              <div data-id="404" class="section-pill bg-sandstone text-dark">📅 Possible Daily Schedule</div>
+              <div data-id="405" class="bg-sandlt rounded-xl p-4 md:p-6 space-y-5">
+                <div data-id="406">
+                  <h4 data-id="407" class="font-bold text-canyon text-sm mb-3">Day 1</h4>
+                  <div data-id="408" class="space-y-2 ml-2">
+                    <div data-id="409" class="flex items-start gap-3"><span data-id="410" class="text-lg">☀️</span><div data-id="411"><span data-id="412" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="413" class="text-sm">Depart Bryce; drive UT-12 (stop at Head of the Rocks, Calf Creek Falls optional)</p></div></div>
+                    <div data-id="414" class="flex items-start gap-3"><span data-id="415" class="text-lg">🌤️</span><div data-id="416"><span data-id="417" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="418" class="text-sm">Arrive Capitol Reef; Fremont Petroglyphs and Fruita Orchards</p></div></div>
+                    <div data-id="419" class="flex items-start gap-3"><span data-id="420" class="text-lg">🌙</span><div data-id="421"><span data-id="422" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="423" class="text-sm">Dinner in Torrey</p></div></div>
+                </div>
+                <div data-id="424">
+                  <h4 data-id="425" class="font-bold text-canyon text-sm mb-3">Day 2</h4>
+                  <div data-id="426" class="space-y-2 ml-2">
+                    <div data-id="427" class="flex items-start gap-3"><span data-id="428" class="text-lg">☀️</span><div data-id="429"><span data-id="430" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="431" class="text-sm">Hickman Bridge Trail + Capitol Reef Scenic Drive</p></div></div>
+                    <div data-id="432" class="flex items-start gap-3"><span data-id="433" class="text-lg">🌤️</span><div data-id="434"><span data-id="435" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="436" class="text-sm">Grand Wash hike; cool off at the Fruita campground picnic area</p></div></div>
+                    <div data-id="437" class="flex items-start gap-3"><span data-id="438" class="text-lg">🌙</span><div data-id="439"><span data-id="440" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="441" class="text-sm">Extraordinary dark-sky stargazing; dinner in Torrey</p></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div data-id="442">
+              <div data-id="443" class="section-pill bg-white text-dark border border-[#d4c4a8]">🍽️ Dinner Recommendations</div>
+              <div data-id="444" class="space-y-3">
+                <div data-id="445" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="446" href="https://www.google.com/maps/search/Hunt+Gather+Restaurant+Torrey+Utah" target="_blank" rel="noopener" class="restaurant-link">Hunt &amp; Gather Restaurant</a>
+                  <span data-id="447" class="badge badge-cuisine ml-2">French/American</span>
+                  <span data-id="448" class="badge badge-price ml-1">$$$</span>
+                  <span data-id="449" class="badge badge-reserve ml-1">Reserve Recommended</span>
+                  <p data-id="450" class="text-sm text-dark/70 mt-1">Intimate chef-driven spot near Torrey showcasing elk, duck, and trout; the salad alone is exceptional.</p>
+                </div>
+                <div data-id="451" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="452" href="https://www.google.com/maps/search/Rim+Rock+Restaurant+Torrey+Utah" target="_blank" rel="noopener" class="restaurant-link">The Rim Rock Restaurant</a>
+                  <span data-id="453" class="badge badge-cuisine ml-2">Southwestern</span>
+                  <span data-id="454" class="badge badge-price ml-1">$$$</span>
+                  <p data-id="455" class="text-sm text-dark/70 mt-1">Reliable Torrey classic with Southwestern flair; housemade mashed potatoes and beautiful canyon views.</p>
+                </div>
+                <div data-id="456" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="457" href="https://www.google.com/maps/search/Broken+Spur+Steakhouse+Torrey+Utah" target="_blank" rel="noopener" class="restaurant-link">Broken Spur Steakhouse</a>
+                  <span data-id="458" class="badge badge-cuisine ml-2">Steakhouse</span>
+                  <span data-id="459" class="badge badge-price ml-1">$$$</span>
+                  <p data-id="460" class="text-sm text-dark/70 mt-1">Hearty steaks in a classic Western atmosphere just outside the park.</p>
+                </div>
+                <div data-id="461" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="462" href="https://www.google.com/maps/search/Slackers+Burger+Joint+Torrey+Utah" target="_blank" rel="noopener" class="restaurant-link">Slacker's Burger Joint</a>
+                  <span data-id="463" class="badge badge-cuisine ml-2">Burgers/American</span>
+                  <span data-id="464" class="badge badge-price ml-1">$</span>
+                  <p data-id="465" class="text-sm text-dark/70 mt-1">No-frills roadside spot in Torrey; the green chile cheeseburger is legendary and costs under $15. Cash only.</p>
+                </div>
+              </div>
+              <p data-id="466" class="text-xs text-dark/50 mt-3 italic">Options range from ~$15–$100/person before tax &amp; tip.</p>
+            </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- STOP 4: MOAB -->
+      <!-- ════════════════════════════════════════════ -->
+      <section data-id="467" id="section-moab" class="dest-section">
+        <div data-id="468" class="rounded-2xl overflow-hidden shadow-lg border border-[#d4c4a8]">
+          <div data-id="469" class="bg-terracotta text-white px-6 py-4 flex items-center gap-3">
+            <span data-id="470" class="bg-white text-terracotta w-9 h-9 rounded-full flex items-center justify-center font-bold text-lg">4</span>
+            <div data-id="471" class="flex-1">
+              <h2 data-id="472" class="text-xl md:text-2xl font-display">Moab</h2>
+              <p data-id="473" class="text-white/80 text-sm">Utah · Oct 22–23</p>
+            </div>
+            <a data-id="474" href="https://app.notion.com/p/swiftsure/Arches-Canyonlands-301120f64453819d9ceaef69d44b374a" target="_blank" rel="noopener" class="notion-header-btn">Plans</a>
+          </div>
+          <div data-id="475" class="bg-white p-5 md:p-8 space-y-8">
+<div class="photo-gallery"><div class="photo-item"><a href="https://www.nps.gov/common/uploads/structured_data/473F5463-F0D2-261D-CEF5FCB39363590B.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://www.nps.gov/common/uploads/structured_data/473F5463-F0D2-261D-CEF5FCB39363590B.jpg" alt="Crowd at Delicate Arch sunset" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Delicate Arch — Arches NPS</p></div><div class="photo-item"><a href="https://www.nps.gov/common/uploads/structured_data/3C7A525D-1DD8-B71B-0B8E59D2EB39F6D0.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://www.nps.gov/common/uploads/structured_data/3C7A525D-1DD8-B71B-0B8E59D2EB39F6D0.jpg" alt="Mesa Arch framing canyon at sunrise" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Mesa Arch — Canyonlands NPS</p></div><div class="photo-item"><a href="https://commons.wikimedia.org/wiki/File:Dead_Horse_Point.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Dead_Horse_Point.jpg/960px-Dead_Horse_Point.jpg" alt="Colorado River at Dead Horse Point" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Dead Horse Point — Wikimedia Commons</p></div></div>
+
+</div>
+
+
+            <div data-id="476">
+              <div data-id="477" class="section-pill bg-sandstone text-dark">🚗 Getting Here</div>
+              <div data-id="478" class="bg-sandlt rounded-xl p-4 border border-[#d4c4a8]">
+                <div data-id="479" class="flex flex-wrap items-center gap-3 mb-2">
+                  <span data-id="480" class="font-bold text-dark">Capitol Reef</span>
+                  <span data-id="481" class="text-terracotta font-bold">→</span>
+                  <span data-id="482" class="font-bold text-dark">Moab</span>
+                  <span data-id="483" class="badge badge-price">150 miles</span>
+                  <span data-id="484" class="badge badge-price">~2.5 hrs</span>
+                </div>
+                <p data-id="485" class="text-sm italic text-dark/60 mb-3">Via UT-24 E and US-191 N through open canyon desert</p>
+                <a data-id="486" href="https://www.google.com/maps/dir/Capitol+Reef+National+Park,+UT/Goblin+Valley+State+Park,+UT/Green+River,+UT/Moab,+UT" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm font-semibold text-terracotta hover:underline">Open in Google Maps →</a>
+                <div data-id="487" class="mt-3 text-sm">
+                  <div data-id="488" class="font-bold text-dark/70 text-xs uppercase tracking-wide mb-1">🛑 Can't-Miss En Route</div>
+                  <ul data-id="489" class="space-y-1 text-dark/80">
+                    <li data-id="490">👾 <strong data-id="491">Goblin Valley State Park</strong> — 45-min detour off UT-24 via Temple Mountain Rd; a surreal valley of thousands of mushroom-shaped hoodoos you can walk among freely. Otherworldly.</li>
+                    <li data-id="492">🍈 <strong data-id="493">Green River</strong> — "Melon capital of the world"; July–Sept roadside stands sell the finest cantaloupe you'll ever eat. Also the John Wesley Powell River History Museum.</li>
+                  </ul>
+                </div>
+            </div>
+
+            <div data-id="494">
+              <div data-id="495" class="section-pill bg-amber-50 text-amber-800" style="background:#fef9ee;color:#92400e;">🌡️ Expected Environment</div>
+              <div data-id="496" class="bg-amber-50 rounded-xl p-4 border border-amber-200" style="background:#fefce8;border-color:#fde68a;">
+                <p data-id="497" class="text-sm text-dark/80 leading-relaxed">Prime conditions. Ideal temperatures (55–75°F days, 40–50°F nights) and no timed entry permits for Arches after October 3rd. Golden cottonwood trees line the Colorado River corridor. Clear, low-humidity air delivers extraordinary visibility and photography light. Pack layers — mornings and evenings at Dead Horse Point and the Canyonlands rim can feel decidedly cold.</p>
+                <div data-id="498" style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #FDE68A;">
+                  <div data-id="499" style="font-size:0.72rem;font-weight:800;color:#92400E;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:0.45rem;">🎭 Cultural Events — Oct 22–23</div>
+                  <ul data-id="500" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0.4rem;">
+                    <li data-id="501" style="font-size:0.8rem;color:#44403c;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="502" style="margin-top:1px;flex-shrink:0;">🎟️</span><span data-id="503"><strong data-id="504">How Did We Get Here: Stories of Migration and Home</strong> — Moab Museum · Free exhibition opening Oct 22. A group show exploring migration, identity, and place through local and regional artists. <a data-id="505" href="https://moabmuseum.org" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Tickets / Info</a></span></li>
+                    <li data-id="506" style="font-size:0.8rem;color:#44403c;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="507" style="margin-top:1px;flex-shrink:0;">🎟️</span><span data-id="508"><strong data-id="509">Moab MTB Adventure Weekend</strong> — Various Moab trails · Multi-day mountain bike event, Oct 22+. A festive community atmosphere even for non-riders; watch races from canyon overlooks. <a data-id="510" href="https://discovermoab.com/events" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Tickets / Info</a></span></li>
+                    <li data-id="511" style="font-size:0.8rem;color:#6b7280;font-style:italic;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="512">📅</span><span data-id="513">Check Moab Arts &amp; Recreation Center (MARC) for gallery openings and live music during your stay. <a data-id="514" href="https://moabarts.org" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Check local calendar</a></span></li>
+                  </ul>
+                </div>
+                <a data-id="515" href="https://www.google.com/search?q=weather+Moab+Utah" target="_blank" rel="noopener" class="weather-link">🌤️ Current Weather</a>
+              </div>
+            </div>
+
+            <div data-id="516">
+              <div data-id="517" class="section-pill bg-sagelt text-sage">🏔️ Top Attractions</div>
+              <div data-id="518" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div data-id="519" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="520" class="flex items-start gap-2"><span data-id="521" class="text-xl">🌀</span><div data-id="522">
+                    <a data-id="523" href="https://en.wikipedia.org/wiki/Arches_National_Park" target="_blank" rel="noopener" class="attraction-link">Arches National Park</a>
+                    <span data-id="524" class="badge badge-mustsee ml-2">Must-See</span>
+                    <p data-id="525" class="text-sm text-dark/70 mt-1">Over 2,000 natural arches including iconic Delicate Arch and Landscape Arch; timed entry required — book at recreation.gov.</p>
+                  </div></div>
+                </div>
+                <div data-id="526" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="527" class="flex items-start gap-2"><span data-id="528" class="text-xl">🏜️</span><div data-id="529">
+                    <button data-id="530" class="drive-link attraction-link" data-drive-title="Island in the Sky — Canyonlands" data-drive-prompt="">Canyonlands — Island in the Sky</button>
+                    <span data-id="531" class="badge badge-scenic ml-2">Scenic Drive</span>
+                    <p data-id="532" class="text-sm text-dark/70 mt-1">Mesa-top district with sweeping Colorado and Green River overlooks; Mesa Arch at sunrise is unforgettable.</p>
+                  </div></div>
+                </div>
+                <div data-id="533" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="534" class="flex items-start gap-2"><span data-id="535" class="text-xl">💀</span><div data-id="536">
+                    <button data-id="537" class="drive-link attraction-link" data-drive-title="Dead Horse Point State Park">Dead Horse Point State Park</button>
+                    <span data-id="538" class="badge badge-mustsee ml-2">Must-See</span>
+                    <p data-id="539" class="text-sm text-dark/70 mt-1">Dramatic overlook 2,000 feet above the Colorado River; arguably the single best view in Utah.</p>
+                  </div></div>
+                </div>
+                <div data-id="540" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="541" class="flex items-start gap-2"><span data-id="542" class="text-xl">🌉</span><div data-id="543">
+                    <a data-id="544" href="https://www.alltrails.com/trail/us/utah/corona-arch-trail" target="_blank" rel="noopener" class="attraction-link">Corona Arch Trail</a>
+                    <span data-id="545" class="badge badge-hike-moderate ml-2">Hike · Moderate</span>
+                    <p data-id="546" class="text-sm text-dark/70 mt-1">3-mile round-trip to a massive free-standing arch; less crowded than Arches NP and equally stunning.</p>
+                  </div></div>
+                </div>
+                <div data-id="547" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="548" class="flex items-start gap-2"><span data-id="549" class="text-xl">🚵</span><div data-id="550">
+                    <a data-id="551" href="https://www.alltrails.com/trail/us/utah/slickrock-bike-trail" target="_blank" rel="noopener" class="attraction-link">Slickrock Bike Trail</a>
+                    <span data-id="552" class="badge badge-activity ml-2">Activity</span>
+                    <p data-id="553" class="text-sm text-dark/70 mt-1">World-famous mountain bike loop on petrified sand dunes — rent bikes in Moab.</p>
+                  </div></div>
+                </div>
+                <div data-id="554" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="555" class="flex items-start gap-2"><span data-id="556" class="text-xl">🚤</span><div data-id="557">
+                    <a data-id="558" href="https://en.wikipedia.org/wiki/Colorado_River" target="_blank" rel="noopener" class="attraction-link">Colorado River Float</a>
+                    <span data-id="559" class="badge badge-activity ml-2">Activity</span>
+                    <p data-id="560" class="text-sm text-dark/70 mt-1">Calm half-day float through canyon scenery; guided tours available from multiple Moab outfitters.</p>
+                  </div></div>
+              </div>
+            </div>
+
+            <div data-id="561">
+              <div data-id="562" class="section-pill bg-sandstone text-dark">📅 Possible Daily Schedule</div>
+              <div data-id="563" class="bg-sandlt rounded-xl p-4 md:p-6 space-y-5">
+                <div data-id="564">
+                  <h4 data-id="565" class="font-bold text-canyon text-sm mb-3">Day 1</h4>
+                  <div data-id="566" class="space-y-2 ml-2">
+                    <div data-id="567" class="flex items-start gap-3"><span data-id="568" class="text-lg">☀️</span><div data-id="569"><span data-id="570" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="571" class="text-sm">Arches NP timed entry — Delicate Arch hike (3 mi, start by 7am to beat heat) + Windows Section</p></div></div>
+                    <div data-id="572" class="flex items-start gap-3"><span data-id="573" class="text-lg">🌤️</span><div data-id="574"><span data-id="575" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="576" class="text-sm">Landscape Arch + Park Avenue loop</p></div></div>
+                    <div data-id="577" class="flex items-start gap-3"><span data-id="578" class="text-lg">🌙</span><div data-id="579"><span data-id="580" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="581" class="text-sm">Dinner in downtown Moab</p></div></div>
+                </div>
+                <div data-id="582">
+                  <h4 data-id="583" class="font-bold text-canyon text-sm mb-3">Day 2</h4>
+                  <div data-id="584" class="space-y-2 ml-2">
+                    <div data-id="585" class="flex items-start gap-3"><span data-id="586" class="text-lg">☀️</span><div data-id="587"><span data-id="588" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="589" class="text-sm">Dead Horse Point State Park (spectacular sunrise)</p></div></div>
+                    <div data-id="590" class="flex items-start gap-3"><span data-id="591" class="text-lg">🌤️</span><div data-id="592"><span data-id="593" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="594" class="text-sm">Canyonlands Island in the Sky — Mesa Arch, Grand View Point</p></div></div>
+                    <div data-id="595" class="flex items-start gap-3"><span data-id="596" class="text-lg">🌙</span><div data-id="597"><span data-id="598" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="599" class="text-sm">Corona Arch at sunset; dinner</p></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div data-id="600">
+              <div data-id="601" class="section-pill bg-white text-dark border border-[#d4c4a8]">🍽️ Dinner Recommendations</div>
+              <div data-id="602" class="space-y-3">
+                <div data-id="603" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="604" href="https://www.google.com/maps/search/Desert+Bistro+Moab+Utah" target="_blank" rel="noopener" class="restaurant-link">Desert Bistro</a>
+                  <span data-id="605" class="badge badge-cuisine ml-2">Contemporary American</span>
+                  <span data-id="606" class="badge badge-price ml-1">$$$$</span>
+                  <span data-id="607" class="badge badge-reserve ml-1">Reserve Recommended</span>
+                  <p data-id="608" class="text-sm text-dark/70 mt-1">Moab's finest dining; refined seasonal menu in a historic house — Agnolotti, Belgian Endive salad.</p>
+                </div>
+                <div data-id="609" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="610" href="https://www.google.com/maps/search/Thai+Bella+Moab+Utah" target="_blank" rel="noopener" class="restaurant-link">Thai Bella</a>
+                  <span data-id="611" class="badge badge-cuisine ml-2">Thai/Asian</span>
+                  <span data-id="612" class="badge badge-price ml-1">$$$</span>
+                  <p data-id="613" class="text-sm text-dark/70 mt-1">Hidden gem rated 4.7; outstanding Khao Soi with duck leg and legendary Bella Spring rolls.</p>
+                </div>
+                <div data-id="614" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="615" href="https://www.google.com/maps/search/Sultan+Mediterranean+Grill+Moab+Utah" target="_blank" rel="noopener" class="restaurant-link">Sultan Mediterranean Grill</a>
+                  <span data-id="616" class="badge badge-cuisine ml-2">Mediterranean</span>
+                  <span data-id="617" class="badge badge-price ml-1">$$$</span>
+                  <p data-id="618" class="text-sm text-dark/70 mt-1">A "must stop" in Moab; fresh, healthy Mediterranean fare with excellent vegetarian options.</p>
+                </div>
+                <div data-id="619" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="620" href="https://www.google.com/maps/search/Moab+Brewery+Moab+Utah" target="_blank" rel="noopener" class="restaurant-link">Moab Brewery</a>
+                  <span data-id="621" class="badge badge-cuisine ml-2">Pub/American</span>
+                  <span data-id="622" class="badge badge-price ml-1">$$</span>
+                  <p data-id="623" class="text-sm text-dark/70 mt-1">Moab's original brewpub; handcrafted ales, massive portions, and a lively patio — perfect post-hike fuel at a fair price.</p>
+                </div>
+                <div data-id="624" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="625" href="https://www.google.com/maps/search/98+Center+Moab+Utah" target="_blank" rel="noopener" class="restaurant-link">98 Center</a>
+                  <span data-id="626" class="badge badge-cuisine ml-2">New American</span>
+                  <span data-id="627" class="badge badge-price ml-1">$$</span>
+                  <p data-id="628" class="text-sm text-dark/70 mt-1">Highly rated creative small plates in a casual setting; rotating seasonal menu, excellent value for the quality.</p>
+                </div>
+              </div>
+              <p data-id="629" class="text-xs text-dark/50 mt-3 italic">Options range from ~$15–$100/person before tax &amp; tip.</p>
+            </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- STOP 5: TELLURIDE -->
+      <!-- ════════════════════════════════════════════ -->
+      <section data-id="630" id="section-telluride" class="dest-section">
+        <div data-id="631" class="rounded-2xl overflow-hidden shadow-lg border border-[#d4c4a8]">
+          <div data-id="632" class="bg-terracotta text-white px-6 py-4 flex items-center gap-3">
+            <span data-id="633" class="bg-white text-terracotta w-9 h-9 rounded-full flex items-center justify-center font-bold text-lg">5</span>
+            <div data-id="634" class="flex-1">
+              <h2 data-id="635" class="text-xl md:text-2xl font-display">Telluride</h2>
+              <p data-id="636" class="text-white/80 text-sm">Colorado · Oct 24–25</p>
+            </div>
+            <a data-id="637" href="https://app.notion.com/p/swiftsure/Telluride-301120f644538149bc9ffe7909140a36" target="_blank" rel="noopener" class="notion-header-btn">Plans</a>
+          </div>
+          <div data-id="638" class="bg-white p-5 md:p-8 space-y-8">
+<div class="photo-gallery"><div class="photo-item"><a href="https://commons.wikimedia.org/wiki/File:Telluride_Colorado.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Telluride_Colorado.jpg/960px-Telluride_Colorado.jpg" alt="Telluride town in mountain valley" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Telluride, Colorado — Wikimedia Commons</p></div><div class="photo-item"><a href="https://commons.wikimedia.org/wiki/File:Ajax_Peak,_San_Juan_Mountains,_Telluride,_Colorado_2014.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Ajax_Peak%2C_San_Juan_Mountains%2C_Telluride%2C_Colorado_2014.jpg/960px-Ajax_Peak%2C_San_Juan_Mountains%2C_Telluride%2C_Colorado_2014.jpg" alt="Ajax Peak and the San Juan Mountains above Telluride" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Ajax Peak & San Juans — Wikimedia Commons</p></div><div class="photo-item"><a href="https://commons.wikimedia.org/wiki/File:Gondola_views_of_Mountain_Village,_Telluride,_Colorado_2025.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Gondola_views_of_Mountain_Village%2C_Telluride%2C_Colorado_2025.jpg/960px-Gondola_views_of_Mountain_Village%2C_Telluride%2C_Colorado_2025.jpg" alt="Gondola over Mountain Village" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Mountain Village Gondola — Wikimedia Commons</p></div></div>
+
+</div>
+
+
+            <div data-id="639">
+              <div data-id="640" class="section-pill bg-sandstone text-dark">🚗 Getting Here</div>
+              <div data-id="641" class="bg-sandlt rounded-xl p-4 border border-[#d4c4a8]">
+                <div data-id="642" class="flex flex-wrap items-center gap-3 mb-2">
+                  <span data-id="643" class="font-bold text-dark">Moab</span>
+                  <span data-id="644" class="text-terracotta font-bold">→</span>
+                  <span data-id="645" class="font-bold text-dark">Telluride</span>
+                  <span data-id="646" class="badge badge-price">200 miles</span>
+                  <span data-id="647" class="badge badge-price">~3.5 hrs</span>
+                </div>
+                <p data-id="648" class="text-sm italic text-dark/60 mb-3">Via US-191 S and CO-145 W through Paradox Valley and San Juan foothills</p>
+                <a data-id="649" href="https://www.google.com/maps/dir/Moab,+UT/Gateway,+CO/Ridgway,+CO/Telluride,+CO" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm font-semibold text-terracotta hover:underline">Open in Google Maps →</a>
+                <div data-id="650" class="mt-3 text-sm">
+                  <div data-id="651" class="font-bold text-dark/70 text-xs uppercase tracking-wide mb-1">🛑 Can't-Miss En Route</div>
+                  <ul data-id="652" class="space-y-1 text-dark/80">
+                    <li data-id="653">🏜️ <strong data-id="654">Gateway Canyon (CO-141 alternate)</strong> — Take CO-128 west from Moab then CO-141 south through Gateway; adds 30 min but passes through stunning red canyon walls rivaling anything in the parks.</li>
+                    <li data-id="655">🏔️ <strong data-id="656">Ridgway, CO</strong> — Picturesque mountain town at the foot of the Cimarron Range; used as the filming location for True Grit. Grab lunch at True Grit Café.</li>
+                    <li data-id="657">🌊 <strong data-id="658">Orvis Hot Springs, Ridgway</strong> — Clothing-optional natural hot springs pool if you have time for a soak on the way through.</li>
+                  </ul>
+                </div>
+            </div>
+
+            <div data-id="659">
+              <div data-id="660" class="section-pill bg-amber-50 text-amber-800" style="background:#fef9ee;color:#92400e;">🌡️ Expected Environment</div>
+              <div data-id="661" class="bg-amber-50 rounded-xl p-4 border border-amber-200" style="background:#fefce8;border-color:#fde68a;">
+                <p data-id="662" class="text-sm text-dark/80 leading-relaxed">Peak or just-past-peak aspen season in the San Juans — brilliant gold groves filling the box canyon above town. Expect 40–60°F days with near-freezing nights. The free gondola runs daily from early morning to midnight. High-elevation trails above 11,000 ft may carry snow — check conditions before heading to Blue Lake or Hope Lake. Town is lively but far quieter than ski season.</p>
+                <div data-id="663" style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #FDE68A;">
+                  <div data-id="664" style="font-size:0.72rem;font-weight:800;color:#92400E;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:0.45rem;">🎭 Cultural Events — Oct 24–25</div>
+                  <ul data-id="665" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0.4rem;">
+                    <li data-id="666" style="font-size:0.8rem;color:#44403c;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="667" style="margin-top:1px;flex-shrink:0;">🎟️</span><span data-id="668"><strong data-id="669">Live music nightly at The Alibi</strong> — 121 S Fir St, Telluride · Intimate venue with touring and regional acts most nights; October lineup posted closer to date. From ~$108. <a data-id="670" href="https://www.alibitelluride.com" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Tickets / Info</a></span></li>
+                    <li data-id="671" style="font-size:0.8rem;color:#44403c;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="672" style="margin-top:1px;flex-shrink:0;">🎟️</span><span data-id="673"><strong data-id="674">Telluride Arts Creative Exchange</strong> — Telluride Arts, Mountain Village · Monthly series for artists and creatives; check for October date. <a data-id="675" href="https://telluridearts.org" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Tickets / Info</a></span></li>
+                    <li data-id="676" style="font-size:0.8rem;color:#6b7280;font-style:italic;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="677">📅</span><span data-id="678">The major Telluride festivals (Film, Blues &amp; Brews, Autumn Classic) wrap up by late September. October is quiet and local — check the Visit Telluride events calendar for any pop-up concerts or gallery events during your stay. <a data-id="679" href="https://visittelluride.com/events" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Check local calendar</a></span></li>
+                  </ul>
+                </div>
+                <a data-id="680" href="https://www.google.com/search?q=weather+Telluride+Colorado" target="_blank" rel="noopener" class="weather-link">🌤️ Current Weather</a>
+              </div>
+            </div>
+
+            <div data-id="681">
+              <div data-id="682" class="section-pill bg-sagelt text-sage">🏔️ Top Attractions</div>
+              <div data-id="683" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div data-id="684" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="685" class="flex items-start gap-2"><span data-id="686" class="text-xl">🚡</span><div data-id="687">
+                    <button data-id="688" class="drive-link attraction-link" data-drive-title="Free Gondola to Mountain Village">Free Gondola to Mountain Village</button>
+                    <span data-id="689" class="badge badge-mustsee ml-2">Must-See</span>
+                    <p data-id="690" class="text-sm text-dark/70 mt-1">The only free scenic gondola in North America; sweeping San Juan Mountain panoramas — ride it at sunset.</p>
+                  </div></div>
+                </div>
+                <div data-id="691" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="692" class="flex items-start gap-2"><span data-id="693" class="text-xl">💦</span><div data-id="694">
+                    <a data-id="695" href="https://www.alltrails.com/trail/us/colorado/bridal-veil-falls-trail-telluride" target="_blank" rel="noopener" class="attraction-link">Bridal Veil Falls</a>
+                    <span data-id="696" class="badge badge-hike-easy ml-2">Hike · Easy</span>
+                    <p data-id="697" class="text-sm text-dark/70 mt-1">Colorado's tallest free-falling waterfall (365 ft) at the valley's eastern end; short walk from the trailhead.</p>
+                  </div></div>
+                </div>
+                <div data-id="698" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="699" class="flex items-start gap-2"><span data-id="700" class="text-xl">🥾</span><div data-id="701">
+                    <a data-id="702" href="https://www.alltrails.com/trail/us/colorado/bear-creek-falls-via-bear-creek-trail" target="_blank" rel="noopener" class="attraction-link">Bear Creek Trail</a>
+                    <span data-id="703" class="badge badge-hike-moderate ml-2">Hike · Moderate</span>
+                    <p data-id="704" class="text-sm text-dark/70 mt-1">Classic 4-mile round-trip through aspen groves to a lovely waterfall above town.</p>
+                  </div></div>
+                </div>
+                <div data-id="705" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="706" class="flex items-start gap-2"><span data-id="707" class="text-xl">🌄</span><div data-id="708">
+                    <a data-id="709" href="https://www.alltrails.com/trail/us/colorado/jud-wiebe-memorial-trail" target="_blank" rel="noopener" class="attraction-link">Jud Wiebe Trail</a>
+                    <span data-id="710" class="badge badge-hike-moderate ml-2">Hike · Moderate</span>
+                    <p data-id="711" class="text-sm text-dark/70 mt-1">Loop trail above town with panoramic views of the box canyon and surrounding 14,000-ft peaks.</p>
+                  </div></div>
+                </div>
+                <div data-id="712" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="713" class="flex items-start gap-2"><span data-id="714" class="text-xl">🏘️</span><div data-id="715">
+                    <a data-id="716" href="https://en.wikipedia.org/wiki/Telluride,_Colorado" target="_blank" rel="noopener" class="attraction-link">Historic Main Street</a>
+                    <span data-id="717" class="badge badge-cultural ml-2">Cultural</span>
+                    <p data-id="718" class="text-sm text-dark/70 mt-1">Colorado's best-preserved Victorian mining town; National Historic Landmark lined with galleries, shops, and summer festivals.</p>
+                  </div></div>
+                </div>
+                <div data-id="719" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="720" class="flex items-start gap-2"><span data-id="721" class="text-xl">🌺</span><div data-id="722">
+                    <button data-id="723" class="drive-link attraction-link" data-drive-title="San Juan Mountains — Wildflower Season" data-drive-prompt="">San Juan Wildflowers (July)</button>
+                    <span data-id="724" class="badge badge-scenic ml-2">Scenic Drive</span>
+                    <p data-id="725" class="text-sm text-dark/70 mt-1">Take the gondola to high alpine meadows — mid-July brings extraordinary wildflower blooms.</p>
+                  </div></div>
+              </div>
+            </div>
+
+            <div data-id="726">
+              <div data-id="727" class="section-pill bg-sandstone text-dark">📅 Possible Daily Schedule</div>
+              <div data-id="728" class="bg-sandlt rounded-xl p-4 md:p-6 space-y-5">
+                <div data-id="729">
+                  <h4 data-id="730" class="font-bold text-canyon text-sm mb-3">Day 1</h4>
+                  <div data-id="731" class="space-y-2 ml-2">
+                    <div data-id="732" class="flex items-start gap-3"><span data-id="733" class="text-lg">☀️</span><div data-id="734"><span data-id="735" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="736" class="text-sm">Drive from Moab via CO-145 (gorgeous mountain highway); arrive Telluride</p></div></div>
+                    <div data-id="737" class="flex items-start gap-3"><span data-id="738" class="text-lg">🌤️</span><div data-id="739"><span data-id="740" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="741" class="text-sm">Walk historic Main Street; take gondola to Mountain Village for panoramic views</p></div></div>
+                    <div data-id="742" class="flex items-start gap-3"><span data-id="743" class="text-lg">🌙</span><div data-id="744"><span data-id="745" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="746" class="text-sm">Sunset ride back on gondola; dinner on Main Street</p></div></div>
+                </div>
+                <div data-id="747">
+                  <h4 data-id="748" class="font-bold text-canyon text-sm mb-3">Day 2</h4>
+                  <div data-id="749" class="space-y-2 ml-2">
+                    <div data-id="750" class="flex items-start gap-3"><span data-id="751" class="text-lg">☀️</span><div data-id="752"><span data-id="753" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="754" class="text-sm">Bridal Veil Falls walk (easy, 2 hrs)</p></div></div>
+                    <div data-id="755" class="flex items-start gap-3"><span data-id="756" class="text-lg">🌤️</span><div data-id="757"><span data-id="758" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="759" class="text-sm">Bear Creek Trail or Jud Wiebe depending on energy</p></div></div>
+                    <div data-id="760" class="flex items-start gap-3"><span data-id="761" class="text-lg">🌙</span><div data-id="762"><span data-id="763" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="764" class="text-sm">Gondola sunset ride; dinner</p></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div data-id="765">
+              <div data-id="766" class="section-pill bg-white text-dark border border-[#d4c4a8]">🍽️ Dinner Recommendations</div>
+              <div data-id="767" class="space-y-3">
+                <div data-id="768" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="769" href="https://www.google.com/maps/search/Chop+House+New+Sheridan+Hotel+Telluride+Colorado" target="_blank" rel="noopener" class="restaurant-link">Chop House Restaurant (New Sheridan)</a>
+                  <span data-id="770" class="badge badge-cuisine ml-2">Steakhouse</span>
+                  <span data-id="771" class="badge badge-price ml-1">$$$$</span>
+                  <span data-id="772" class="badge badge-reserve ml-1">Reserve Recommended</span>
+                  <p data-id="773" class="text-sm text-dark/70 mt-1">Telluride's most celebrated steakhouse inside the historic New Sheridan Hotel; prime cuts and impeccable service.</p>
+                </div>
+                <div data-id="774" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="775" href="https://www.google.com/maps/search/221+South+Oak+Telluride+Colorado" target="_blank" rel="noopener" class="restaurant-link">221 South Oak</a>
+                  <span data-id="776" class="badge badge-cuisine ml-2">Contemporary American</span>
+                  <span data-id="777" class="badge badge-price ml-1">$$$$</span>
+                  <span data-id="778" class="badge badge-reserve ml-1">Reserve Recommended</span>
+                  <p data-id="779" class="text-sm text-dark/70 mt-1">Intimate fine dining with foie gras, Colorado bass, and house-made ravioli — one of Colorado's best.</p>
+                </div>
+                <div data-id="780" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="781" href="https://www.google.com/maps/search/Cosmopolitan+Restaurant+Telluride+Colorado" target="_blank" rel="noopener" class="restaurant-link">Cosmopolitan Restaurant</a>
+                  <span data-id="782" class="badge badge-cuisine ml-2">Contemporary American</span>
+                  <span data-id="783" class="badge badge-price ml-1">$$$</span>
+                  <p data-id="784" class="text-sm text-dark/70 mt-1">Lively upscale spot; legendary lobster corn dogs, seared scallops, and a showstopping Pork Chop.</p>
+                </div>
+                <div data-id="785" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="786" href="https://www.google.com/maps/search/Brown+Dog+Pizza+Telluride+Colorado" target="_blank" rel="noopener" class="restaurant-link">Brown Dog Pizza</a>
+                  <span data-id="787" class="badge badge-cuisine ml-2">Pizza</span>
+                  <span data-id="788" class="badge badge-price ml-1">$$</span>
+                  <p data-id="789" class="text-sm text-dark/70 mt-1">The best pizza in the San Juans — thin crust, creative toppings, craft beer. A Telluride institution beloved by locals and visitors alike.</p>
+                </div>
+              </div>
+              <p data-id="790" class="text-xs text-dark/50 mt-3 italic">Options range from ~$15–$100/person before tax &amp; tip.</p>
+            </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- STOP 6: PAGOSA SPRINGS -->
+      <!-- ════════════════════════════════════════════ -->
+      <section data-id="791" id="section-pagosa" class="dest-section">
+        <div data-id="792" class="rounded-2xl overflow-hidden shadow-lg border border-[#d4c4a8]">
+          <div data-id="793" class="bg-terracotta text-white px-6 py-4 flex items-center gap-3">
+            <span data-id="794" class="bg-white text-terracotta w-9 h-9 rounded-full flex items-center justify-center font-bold text-lg">6</span>
+            <div data-id="795" class="flex-1">
+              <h2 data-id="796" class="text-xl md:text-2xl font-display">Pagosa Springs</h2>
+              <p data-id="797" class="text-white/80 text-sm">Colorado · Oct 26</p>
+            </div>
+            <a data-id="798" href="https://app.notion.com/p/swiftsure/Pagosa-Springs-360120f6445380e5a926c8e641df2c97" target="_blank" rel="noopener" class="notion-header-btn">Plans</a>
+          </div>
+          <div data-id="799" class="bg-white p-5 md:p-8 space-y-8">
+<div class="photo-gallery"><div class="photo-item"><a href="https://commons.wikimedia.org/wiki/File:Pagosa_Springs,_Colorado.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Pagosa_Springs%2C_Colorado.jpg/960px-Pagosa_Springs%2C_Colorado.jpg" alt="Pagosa Springs with San Juan Mountains" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Pagosa Springs — Wikimedia Commons</p></div><div class="photo-item"><a href="https://commons.wikimedia.org/wiki/File:Treasure_Falls,_Colorado.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Treasure_Falls%2C_Colorado.jpg/960px-Treasure_Falls%2C_Colorado.jpg" alt="Treasure Falls waterfall near Pagosa Springs" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Treasure Falls — Wikimedia Commons</p></div><div class="photo-item"><a href="https://commons.wikimedia.org/wiki/File:Pagosa-Springs_The-Springs-Resort-and-Spa_2012-10-24.JPG" target="_blank" rel="noopener" title="View full size"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Pagosa-Springs_The-Springs-Resort-and-Spa_2012-10-24.JPG/960px-Pagosa-Springs_The-Springs-Resort-and-Spa_2012-10-24.JPG" alt="The Springs Resort hot springs at Pagosa Springs" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">The Springs Resort — Wikimedia Commons</p></div></div>
+
+</div>
+
+
+            <div data-id="800">
+              <div data-id="801" class="section-pill bg-sandstone text-dark">🚗 Getting Here</div>
+              <div data-id="802" class="bg-sandlt rounded-xl p-4 border border-[#d4c4a8]">
+                <div data-id="803" class="flex flex-wrap items-center gap-3 mb-2">
+                  <span data-id="804" class="font-bold text-dark">Telluride</span>
+                  <span data-id="805" class="text-terracotta font-bold">→</span>
+                  <span data-id="806" class="font-bold text-dark">Pagosa Springs</span>
+                  <span data-id="807" class="badge badge-price">120 miles</span>
+                  <span data-id="808" class="badge badge-price">~2.5 hrs</span>
+                </div>
+                <p data-id="809" class="text-sm italic text-dark/60 mb-3">Via US-550 S through Durango (worthy lunch stop) then US-160 E</p>
+                <a data-id="810" href="https://www.google.com/maps/dir/Telluride,+CO/Durango,+CO/Pagosa+Springs,+CO" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm font-semibold text-terracotta hover:underline">Open in Google Maps →</a>
+                <div data-id="811" class="mt-3 text-sm">
+                  <div data-id="812" class="font-bold text-dark/70 text-xs uppercase tracking-wide mb-1">🛑 Can't-Miss En Route</div>
+                  <ul data-id="813" class="space-y-1 text-dark/80">
+                    <li data-id="814">🚂 <strong data-id="815">Durango</strong> — Historic Victorian railroad town; walk Main Avenue, grab lunch at Carver Brewing or Ore House. The Durango &amp; Silverton Narrow Gauge Railroad departs from here (full-day trip if you have it).</li>
+                    <li data-id="816">⛷️ <strong data-id="817">Purgatory Resort</strong> — 20 miles north of Durango on US-550; in summer it's a mountain bike and scenic gondola destination worth a brief stop.</li>
+                  </ul>
+                </div>
+            </div>
+
+            <div data-id="818">
+              <div data-id="819" class="section-pill bg-amber-50 text-amber-800" style="background:#fef9ee;color:#92400e;">🌡️ Expected Environment</div>
+              <div data-id="820" class="bg-amber-50 rounded-xl p-4 border border-amber-200" style="background:#fefce8;border-color:#fde68a;">
+                <p data-id="821" class="text-sm text-dark/80 leading-relaxed">Aspen groves will be golden (or fading to russet depending on the year). Expect 45–65°F days and near-freezing nights. The hot springs feel exceptional when the air is cool — plan your soak for late afternoon or evening. Wolf Creek Pass (10,857 ft) on US-160 may have early snow. Chimney Rock National Monument closes mid-October — confirm availability before visiting.</p>
+                <div data-id="822" style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #FDE68A;">
+                  <div data-id="823" style="font-size:0.72rem;font-weight:800;color:#92400E;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:0.45rem;">🎭 Cultural Events — Oct 26</div>
+                  <ul data-id="824" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0.4rem;">
+                    <li data-id="825" style="font-size:0.8rem;color:#44403c;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="826" style="margin-top:1px;flex-shrink:0;">🎟️</span><span data-id="827"><strong data-id="828">Pagosa Springs Center for the Arts</strong> — 2nd &amp; Lewis St · Fall theatrical season runs through October; past productions have included major Broadway titles. Check current show schedule. <a data-id="829" href="https://pagosacenter.org" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Tickets / Info</a></span></li>
+                    <li data-id="830" style="font-size:0.8rem;color:#44403c;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="831" style="margin-top:1px;flex-shrink:0;">🎟️</span><span data-id="832"><strong data-id="833">Live music weekends at Riff Raff Brewing Co</strong> — 241 Pagosa St · Regular weekend live music on the outdoor patio; intimate local acts. <a data-id="834" href="https://www.riffraffbrewing.com" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Tickets / Info</a></span></li>
+                    <li data-id="835" style="font-size:0.8rem;color:#6b7280;font-style:italic;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="836">📅</span><span data-id="837">The Mountain Light Music Festival (world-class chamber music series at The Springs Resort) runs through August. The fall is quieter — check the Visit Pagosa Springs events page for any October performances. <a data-id="838" href="https://visitpagosasprings.com/events/" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Check local calendar</a></span></li>
+                  </ul>
+                </div>
+                <a data-id="839" href="https://www.google.com/search?q=weather+Pagosa+Springs+Colorado" target="_blank" rel="noopener" class="weather-link">🌤️ Current Weather</a>
+              </div>
+            </div>
+
+            <div data-id="840">
+              <div data-id="841" class="section-pill bg-sagelt text-sage">🏔️ Top Attractions</div>
+              <div data-id="842" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div data-id="843" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="844" class="flex items-start gap-2"><span data-id="845" class="text-xl">♨️</span><div data-id="846">
+                    <button data-id="847" class="drive-link attraction-link" data-drive-title="The Springs Resort &amp; Spa">The Springs Resort &amp; Spa</button>
+                    <span data-id="848" class="badge badge-mustsee ml-2">Must-See</span>
+                    <p data-id="849" class="text-sm text-dark/70 mt-1">World's deepest geothermal hot spring; 25 riverside pools at varying temperatures — day passes available.</p>
+                  </div></div>
+                </div>
+                <div data-id="850" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="851" class="flex items-start gap-2"><span data-id="852" class="text-xl">💧</span><div data-id="853">
+                    <a data-id="854" href="https://www.alltrails.com/trail/us/colorado/treasure-falls-trail" target="_blank" rel="noopener" class="attraction-link">Treasure Falls</a>
+                    <span data-id="855" class="badge badge-hike-easy ml-2">Hike · Easy</span>
+                    <p data-id="856" class="text-sm text-dark/70 mt-1">Easy 1-mile round-trip to a 105-foot waterfall just west of Wolf Creek Pass on US-160.</p>
+                  </div></div>
+                </div>
+                <div data-id="857" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="858" class="flex items-start gap-2"><span data-id="859" class="text-xl">🦅</span><div data-id="860">
+                    <a data-id="861" href="https://www.alltrails.com/trail/us/colorado/piedra-falls-trail" target="_blank" rel="noopener" class="attraction-link">Piedra Falls</a>
+                    <span data-id="862" class="badge badge-hike-moderate ml-2">Hike · Moderate</span>
+                    <p data-id="863" class="text-sm text-dark/70 mt-1">Remote 8-mile round-trip through San Juan wilderness to dramatic falls — peaceful and wild.</p>
+                  </div></div>
+                </div>
+                <div data-id="864" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="865" class="flex items-start gap-2"><span data-id="866" class="text-xl">🏛️</span><div data-id="867">
+                    <a data-id="868" href="https://en.wikipedia.org/wiki/Chimney_Rock_National_Monument" target="_blank" rel="noopener" class="attraction-link">Chimney Rock National Monument</a>
+                    <span data-id="869" class="badge badge-cultural ml-2">Cultural</span>
+                    <p data-id="870" class="text-sm text-dark/70 mt-1">Ancient Chacoan site on a dramatic twin-pinnacle ridge; guided tours required — book in advance.</p>
+                  </div></div>
+                </div>
+                <div data-id="871" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="872" class="flex items-start gap-2"><span data-id="873" class="text-xl">🌲</span><div data-id="874">
+                    <button data-id="875" class="drive-link attraction-link" data-drive-title="Wolf Creek Pass Scenic Drive" data-drive-prompt="">Wolf Creek Pass Scenic Drive</button>
+                    <span data-id="876" class="badge badge-scenic ml-2">Scenic Drive</span>
+                    <p data-id="877" class="text-sm text-dark/70 mt-1">Cross the Continental Divide at 10,857 ft; gorgeous alpine meadows and aspen forests.</p>
+                  </div></div>
+                </div>
+                <div data-id="878" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="879" class="flex items-start gap-2"><span data-id="880" class="text-xl">🎣</span><div data-id="881">
+                    <a data-id="882" href="https://en.wikipedia.org/wiki/San_Juan_River_(Colorado_River)" target="_blank" rel="noopener" class="attraction-link">San Juan River Fly Fishing</a>
+                    <span data-id="883" class="badge badge-activity ml-2">Activity</span>
+                    <p data-id="884" class="text-sm text-dark/70 mt-1">Blue-ribbon trout stream flowing through downtown Pagosa; guided half- and full-day trips available.</p>
+                  </div></div>
+              </div>
+            </div>
+
+            <div data-id="885">
+              <div data-id="886" class="section-pill bg-sandstone text-dark">📅 Possible Daily Schedule</div>
+              <div data-id="887" class="bg-sandlt rounded-xl p-4 md:p-6 space-y-5">
+                <div data-id="888">
+                  <h4 data-id="889" class="font-bold text-canyon text-sm mb-3">Day 1</h4>
+                  <div data-id="890" class="space-y-2 ml-2">
+                    <div data-id="891" class="flex items-start gap-3"><span data-id="892" class="text-lg">☀️</span><div data-id="893"><span data-id="894" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="895" class="text-sm">Drive from Telluride via US-550 S through Durango (optional lunch stop); detour to Treasure Falls on US-160 — easy 20-min walk to a 105-ft waterfall; continue to Pagosa Springs and check in</p></div></div>
+                    <div data-id="896" class="flex items-start gap-3"><span data-id="897" class="text-lg">🌤️</span><div data-id="898"><span data-id="899" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="900" class="text-sm">Chimney Rock National Monument guided tour (arrive by 1pm; last tours depart 2pm — book ahead at chimneyrockco.org); alternatively, a relaxing walk along the San Juan River through town</p></div></div>
+                    <div data-id="901" class="flex items-start gap-3"><span data-id="902" class="text-lg">🌙</span><div data-id="903"><span data-id="904" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="905" class="text-sm">The Springs Resort — sunset soak in the world's deepest geothermal hot springs (day pass); dinner in town before or after soaking</p></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div data-id="906">
+              <div data-id="907" class="section-pill bg-white text-dark border border-[#d4c4a8]">🍽️ Dinner Recommendations</div>
+              <div data-id="908" class="space-y-3">
+                <div data-id="909" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="910" href="https://www.google.com/maps/search/Alley+House+Grille+Pagosa+Springs+Colorado" target="_blank" rel="noopener" class="restaurant-link">Alley House Grille</a>
+                  <span data-id="911" class="badge badge-cuisine ml-2">American/Seafood</span>
+                  <span data-id="912" class="badge badge-price ml-1">$$$$</span>
+                  <span data-id="913" class="badge badge-reserve ml-1">Reserve Recommended</span>
+                  <p data-id="914" class="text-sm text-dark/70 mt-1">Beloved special-occasion spot; rotating seasonal elk, beef, and creative seafood menus.</p>
+                </div>
+                <div data-id="915" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="916" href="https://www.google.com/maps/search/Wild+Finch+Pagosa+Springs+Colorado" target="_blank" rel="noopener" class="restaurant-link">Wild Finch</a>
+                  <span data-id="917" class="badge badge-cuisine ml-2">Farm-to-Table</span>
+                  <span data-id="918" class="badge badge-price ml-1">$$$$</span>
+                  <span data-id="919" class="badge badge-reserve ml-1">Reserve Recommended</span>
+                  <p data-id="920" class="text-sm text-dark/70 mt-1">Chef-owned gem; exceptional duck breast and sablefish; warm, personal service.</p>
+                </div>
+                <div data-id="921" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="922" href="https://www.google.com/maps/search/Thai+Pagosa+Pagosa+Springs+Colorado" target="_blank" rel="noopener" class="restaurant-link">Thai Pagosa</a>
+                  <span data-id="923" class="badge badge-cuisine ml-2">Thai/Asian</span>
+                  <span data-id="924" class="badge badge-price ml-1">$$$</span>
+                  <p data-id="925" class="text-sm text-dark/70 mt-1">Rated 4.7 and beloved by locals; Drunken Noodles and Massaman Curry with roasted duck are standouts.</p>
+                </div>
+                <div data-id="926" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="927" href="https://www.google.com/maps/search/Pagosa+Brewing+Company+Pagosa+Springs+Colorado" target="_blank" rel="noopener" class="restaurant-link">Pagosa Brewing Company</a>
+                  <span data-id="928" class="badge badge-cuisine ml-2">Brewpub/American</span>
+                  <span data-id="929" class="badge badge-price ml-1">$$</span>
+                  <p data-id="930" class="text-sm text-dark/70 mt-1">Award-winning craft brewery with a full pub menu; burgers, tacos, and patio seating. Multiple GABF medal-winning beers on tap.</p>
+                </div>
+              </div>
+              <p data-id="931" class="text-xs text-dark/50 mt-3 italic">Options range from ~$15–$100/person before tax &amp; tip.</p>
+            </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════ -->
+      <!-- STOP 7: SANTA FE -->
+      <!-- ════════════════════════════════════════════ -->
+      <section data-id="932" id="section-santafe" class="dest-section">
+        <div data-id="933" class="rounded-2xl overflow-hidden shadow-lg border border-[#d4c4a8]">
+          <div data-id="934" class="bg-terracotta text-white px-6 py-4 flex items-center gap-3">
+            <span data-id="935" class="bg-white text-terracotta w-9 h-9 rounded-full flex items-center justify-center font-bold text-lg">7</span>
+            <div data-id="936" class="flex-1">
+              <h2 data-id="937" class="text-xl md:text-2xl font-display">Santa Fe</h2>
+              <p data-id="938" class="text-white/80 text-sm">New Mexico · Oct 27–28</p>
+            </div>
+            <a data-id="939" href="https://app.notion.com/p/swiftsure/Santa-Fe-360120f644538007be5ac9abaa986ff4" target="_blank" rel="noopener" class="notion-header-btn">Plans</a>
+          </div>
+          <div data-id="940" class="bg-white p-5 md:p-8 space-y-8">
+<div class="photo-gallery"><div class="photo-item"><a href="https://commons.wikimedia.org/wiki/File:Santa_Fe_Plaza.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Santa_Fe_Plaza.jpg/960px-Santa_Fe_Plaza.jpg" alt="Historic Santa Fe Plaza" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Santa Fe Plaza — Wikimedia Commons</p></div><div class="photo-item"><a href="https://commons.wikimedia.org/wiki/File:Canyon_Road_in_Santa_Fe,_New_Mexico,_USA_(20).jpg" target="_blank" rel="noopener" title="View full size"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Canyon_Road_in_Santa_Fe%2C_New_Mexico%2C_USA_%2820%29.jpg/960px-Canyon_Road_in_Santa_Fe%2C_New_Mexico%2C_USA_%2820%29.jpg" alt="Canyon Road galleries and adobe buildings" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Canyon Road — Wikimedia Commons</p></div><div class="photo-item"><a href="https://commons.wikimedia.org/wiki/File:Route_66,_Santa_Fe,_New_Mexico.jpg" target="_blank" rel="noopener" title="View full size"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Route_66%2C_Santa_Fe%2C_New_Mexico.jpg/960px-Route_66%2C_Santa_Fe%2C_New_Mexico.jpg" alt="Historic Route 66 street in Santa Fe New Mexico" loading="lazy" onerror="this.closest('.photo-item').style.display='none'" /></a><p class="photo-caption">Old Santa Fe Trail — Wikimedia Commons</p></div></div>
+
+</div>
+
+
+            <div data-id="941">
+              <div data-id="942" class="section-pill bg-sandstone text-dark">🚗 Getting Here</div>
+              <div data-id="943" class="bg-sandlt rounded-xl p-4 border border-[#d4c4a8]">
+                <div data-id="944" class="flex flex-wrap items-center gap-3 mb-2">
+                  <span data-id="945" class="font-bold text-dark">Pagosa Springs</span>
+                  <span data-id="946" class="text-terracotta font-bold">→</span>
+                  <span data-id="947" class="font-bold text-dark">Santa Fe</span>
+                  <span data-id="948" class="badge badge-price">200 miles</span>
+                  <span data-id="949" class="badge badge-price">~3 hrs</span>
+                </div>
+                <p data-id="950" class="text-sm italic text-dark/60 mb-3">Via US-84 S through Chama River valley and Georgia O'Keeffe country (stop at Ghost Ranch)</p>
+                <a data-id="951" href="https://www.google.com/maps/dir/Pagosa+Springs,+CO/Chama,+NM/Abiquiu,+NM/Piedra+Pintada+Inscribed+Rock,+NM/Santa+Fe,+NM" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-sm font-semibold text-terracotta hover:underline">Open in Google Maps →</a>
+                <div data-id="952" class="mt-3 text-sm">
+                  <div data-id="953" class="font-bold text-dark/70 text-xs uppercase tracking-wide mb-1">🛑 Can't-Miss En Route</div>
+                  <ul data-id="954" class="space-y-1 text-dark/80">
+                    <li data-id="955">🚂 <strong data-id="956">Chama, NM</strong> — Departure point for the Cumbres &amp; Toltec Scenic Railroad, a 64-mile narrow-gauge steam train through the Rockies (book ahead). The town itself is a funky high-desert gem.</li>
+                    <li data-id="957">🎨 <strong data-id="958">Abiquiú &amp; Ghost Ranch</strong> — Georgia O'Keeffe painted this red-rock landscape for decades; Ghost Ranch offers guided tours and the scenery is as vivid as her paintings. Pull off at every overlook on US-84 through this stretch.</li>
+                    <li data-id="959">🏔️ <strong data-id="960">Abiquiú Lake</strong> — A brilliant turquoise reservoir ringed by red cliffs; excellent quick picnic stop just south of Ghost Ranch.</li>
+                  </ul>
+                </div>
+            </div>
+
+            <div data-id="961">
+              <div data-id="962" class="section-pill bg-amber-50 text-amber-800" style="background:#fef9ee;color:#92400e;">🌡️ Expected Environment</div>
+              <div data-id="963" class="bg-amber-50 rounded-xl p-4 border border-amber-200" style="background:#fefce8;border-color:#fde68a;">
+                <p data-id="964" class="text-sm text-dark/80 leading-relaxed">Near-perfect October conditions: 60–65°F sunny days and 35–40°F nights. Low humidity and brilliant high-desert blue skies. Canyon Road galleries and the Plaza are active but comfortable — no summer crush. Golden cottonwoods line the acequia trails through the historic neighborhoods. The Railyard Farmers Market runs Saturdays. An ideal pace for museum-hopping, gallery walks, and long dinners.</p>
+                <div data-id="965" style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #FDE68A;">
+                  <div data-id="966" style="font-size:0.72rem;font-weight:800;color:#92400E;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:0.45rem;">🎭 Cultural Events — Oct 27–28</div>
+                  <ul data-id="967" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:0.4rem;">
+                    <li data-id="968" style="font-size:0.8rem;color:#44403c;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="969" style="margin-top:1px;flex-shrink:0;">🎟️</span><span data-id="970"><strong data-id="971">New Mexico Philharmonic: Olga Plays Grieg</strong> — Popejoy Hall, Albuquerque (1 hr south) · Nov 28 is the next NMPhil concert. The Oct 3 Dvořák's New World concert may suit if adjusting dates. Check fall schedule. <a data-id="972" href="https://www.nmphil.org" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Tickets / Info</a></span></li>
+                    <li data-id="973" style="font-size:0.8rem;color:#44403c;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="974" style="margin-top:1px;flex-shrink:0;">🎟️</span><span data-id="975"><strong data-id="976">Santa Fe Desert Chorale: 2026 Santa Fe Sings!</strong> — United Church of Santa Fe · Sept 19 performance (just before your visit). Watch for any added October dates. <a data-id="977" href="https://desertchorale.org" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Tickets / Info</a></span></li>
+                    <li data-id="978" style="font-size:0.8rem;color:#44403c;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="979" style="margin-top:1px;flex-shrink:0;">🎟️</span><span data-id="980"><strong data-id="981">Santa Fe Home &amp; Lifestyle Show</strong> — Santa Fe Community Convention Center · Oct 30 (just after your stay). Local artisan and design showcase. <a data-id="982" href="https://santafe.org/events" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Tickets / Info</a></span></li>
+                    <li data-id="983" style="font-size:0.8rem;color:#44403c;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="984" style="margin-top:1px;flex-shrink:0;">🎟️</span><span data-id="985"><strong data-id="986">Canyon Road Gallery Openings</strong> — Canyon Road · Most galleries hold informal Friday evening openings with wine and the artist present. Oct 23 &amp; Oct 30 are typical Friday opening nights. <a data-id="987" href="https://visitcanyonroad.com" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Tickets / Info</a></span></li>
+                    <li data-id="988" style="font-size:0.8rem;color:#6b7280;font-style:italic;display:flex;align-items:flex-start;gap:0.4rem;"><span data-id="989">📅</span><span data-id="990">Check the Tourism Santa Fe events calendar closer to your visit — October listings for theater and music are added on a rolling basis. <a data-id="991" href="https://santafe.org/events" target="_blank" rel="noopener" style="color:#92400E;text-decoration:underline;text-underline-offset:2px;">Check local calendar</a></span></li>
+                  </ul>
+                </div>
+                <a data-id="992" href="https://www.google.com/search?q=weather+Santa+Fe+New+Mexico" target="_blank" rel="noopener" class="weather-link">🌤️ Current Weather</a>
+              </div>
+            </div>
+
+            <div data-id="993">
+              <div data-id="994" class="section-pill bg-sagelt text-sage">🏔️ Top Attractions</div>
+              <div data-id="995" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div data-id="996" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="997" class="flex items-start gap-2"><span data-id="998" class="text-xl">🎨</span><div data-id="999">
+                    <a data-id="1000" href="https://en.wikipedia.org/wiki/Georgia_O%27Keeffe_Museum" target="_blank" rel="noopener" class="attraction-link">Georgia O'Keeffe Museum</a>
+                    <span data-id="1001" class="badge badge-cultural ml-2">Cultural</span>
+                    <p data-id="1002" class="text-sm text-dark/70 mt-1">World's largest O'Keeffe collection; iconic New Mexico paintings in an intimate downtown setting — book timed entry.</p>
+                  </div></div>
+                </div>
+                <div data-id="1003" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="1004" class="flex items-start gap-2"><span data-id="1005" class="text-xl">🖼️</span><div data-id="1006">
+                    <a data-id="1007" href="https://en.wikipedia.org/wiki/Canyon_Road" target="_blank" rel="noopener" class="attraction-link">Canyon Road Gallery District</a>
+                    <span data-id="1008" class="badge badge-cultural ml-2">Cultural</span>
+                    <p data-id="1009" class="text-sm text-dark/70 mt-1">Mile-long street with 80+ galleries; the beating heart of the Southwest art scene — best on foot.</p>
+                  </div></div>
+                </div>
+                <div data-id="1010" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="1011" class="flex items-start gap-2"><span data-id="1012" class="text-xl">🎭</span><div data-id="1013">
+                    <a data-id="1014" href="https://en.wikipedia.org/wiki/Meow_Wolf" target="_blank" rel="noopener" class="attraction-link">Meow Wolf: House of Eternal Return</a>
+                    <span data-id="1015" class="badge badge-mustsee ml-2">Must-See</span>
+                    <p data-id="1016" class="text-sm text-dark/70 mt-1">Mind-bending immersive art installation in a converted bowling alley; book tickets in advance.</p>
+                  </div></div>
+                </div>
+                <div data-id="1017" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="1018" class="flex items-start gap-2"><span data-id="1019" class="text-xl">🏛️</span><div data-id="1020">
+                    <a data-id="1021" href="https://en.wikipedia.org/wiki/Palace_of_the_Governors" target="_blank" rel="noopener" class="attraction-link">Plaza &amp; Palace of the Governors</a>
+                    <span data-id="1022" class="badge badge-cultural ml-2">Cultural</span>
+                    <p data-id="1023" class="text-sm text-dark/70 mt-1">Historic heart of the oldest US capital; Native American artists sell jewelry daily under the portal.</p>
+                  </div></div>
+                </div>
+                <div data-id="1024" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="1025" class="flex items-start gap-2"><span data-id="1026" class="text-xl">🏔️</span><div data-id="1027">
+                    <a data-id="1028" href="https://en.wikipedia.org/wiki/Bandelier_National_Monument" target="_blank" rel="noopener" class="attraction-link">Bandelier National Monument</a>
+                    <span data-id="1029" class="badge badge-hike-moderate ml-2">Hike · Moderate</span>
+                    <p data-id="1030" class="text-sm text-dark/70 mt-1">Day-trip 45 min from Santa Fe; ancient Pueblo cliff dwellings and Frijoles Canyon hikes.</p>
+                  </div></div>
+                </div>
+                <div data-id="1031" class="bg-sagelt/50 rounded-xl p-4 border border-sage/20">
+                  <div data-id="1032" class="flex items-start gap-2"><span data-id="1033" class="text-xl">🎶</span><div data-id="1034">
+                    <a data-id="1035" href="https://en.wikipedia.org/wiki/Santa_Fe_Opera" target="_blank" rel="noopener" class="attraction-link">Santa Fe Opera</a>
+                    <span data-id="1036" class="badge badge-activity ml-2">Activity</span>
+                    <p data-id="1037" class="text-sm text-dark/70 mt-1">Open-air amphitheater in the desert hills north of town; world-class opera July–August — book months ahead.</p>
+                  </div></div>
+              </div>
+            </div>
+
+            <div data-id="1038">
+              <div data-id="1039" class="section-pill bg-sandstone text-dark">📅 Possible Daily Schedule</div>
+              <div data-id="1040" class="bg-sandlt rounded-xl p-4 md:p-6 space-y-5">
+                <div data-id="1041">
+                  <h4 data-id="1042" class="font-bold text-canyon text-sm mb-3">Day 1</h4>
+                  <div data-id="1043" class="space-y-2 ml-2">
+                    <div data-id="1044" class="flex items-start gap-3"><span data-id="1045" class="text-lg">☀️</span><div data-id="1046"><span data-id="1047" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="1048" class="text-sm">Drive from Pagosa via US-84; stop at Ghost Ranch and Abiquiú (O'Keeffe country)</p></div></div>
+                    <div data-id="1049" class="flex items-start gap-3"><span data-id="1050" class="text-lg">🌤️</span><div data-id="1051"><span data-id="1052" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="1053" class="text-sm">Arrive Santa Fe; check in; stroll the Plaza and Palace of the Governors</p></div></div>
+                    <div data-id="1054" class="flex items-start gap-3"><span data-id="1055" class="text-lg">🌙</span><div data-id="1056"><span data-id="1057" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="1058" class="text-sm">Canyon Road galleries (many stay open until 7pm on Fridays); dinner on the Plaza</p></div></div>
+                </div>
+                <div data-id="1059">
+                  <h4 data-id="1060" class="font-bold text-canyon text-sm mb-3">Day 2</h4>
+                  <div data-id="1061" class="space-y-2 ml-2">
+                    <div data-id="1062" class="flex items-start gap-3"><span data-id="1063" class="text-lg">☀️</span><div data-id="1064"><span data-id="1065" class="text-xs font-bold text-dark/50 uppercase">Morning</span><p data-id="1066" class="text-sm">Georgia O'Keeffe Museum (timed entry); browse downtown galleries</p></div></div>
+                    <div data-id="1067" class="flex items-start gap-3"><span data-id="1068" class="text-lg">🌤️</span><div data-id="1069"><span data-id="1070" class="text-xs font-bold text-dark/50 uppercase">Afternoon</span><p data-id="1071" class="text-sm">Meow Wolf: House of Eternal Return (allow 2–3 hrs); or day-trip to Bandelier National Monument</p></div></div>
+                    <div data-id="1072" class="flex items-start gap-3"><span data-id="1073" class="text-lg">🌙</span><div data-id="1074"><span data-id="1075" class="text-xs font-bold text-dark/50 uppercase">Evening</span><p data-id="1076" class="text-sm">Farewell dinner at one of Santa Fe's outstanding restaurants</p></div></div>
+                </div>
+              </div>
+            </div>
+
+            <div data-id="1077">
+              <div data-id="1078" class="section-pill bg-white text-dark border border-[#d4c4a8]">🍽️ Dinner Recommendations</div>
+              <div data-id="1079" class="space-y-3">
+                <div data-id="1080" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="1081" href="https://www.google.com/maps/search/The+Shed+Santa+Fe+New+Mexico" target="_blank" rel="noopener" class="restaurant-link">The Shed</a>
+                  <span data-id="1082" class="badge badge-cuisine ml-2">New Mexican</span>
+                  <span data-id="1083" class="badge badge-price ml-1">$$$</span>
+                  <span data-id="1084" class="badge badge-reserve ml-1">Reserve Recommended</span>
+                  <p data-id="1085" class="text-sm text-dark/70 mt-1">Iconic Santa Fe institution since 1953; legendary red chile enchiladas and blue corn tortillas in a historic adobe courtyard.</p>
+                </div>
+                <div data-id="1086" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="1087" href="https://www.google.com/maps/search/Geronimo+Restaurant+Santa+Fe+New+Mexico" target="_blank" rel="noopener" class="restaurant-link">Geronimo</a>
+                  <span data-id="1088" class="badge badge-cuisine ml-2">Contemporary American</span>
+                  <span data-id="1089" class="badge badge-price ml-1">$$$$</span>
+                  <span data-id="1090" class="badge badge-reserve ml-1">Reserve Recommended</span>
+                  <p data-id="1091" class="text-sm text-dark/70 mt-1">Upscale Canyon Road gem in a 1756 adobe; elk tenderloin, lobster tails, and impeccable service — Santa Fe's finest.</p>
+                </div>
+                <div data-id="1092" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="1093" href="https://www.google.com/maps/search/Cafe+Pasquals+Santa+Fe+New+Mexico" target="_blank" rel="noopener" class="restaurant-link">Café Pasqual's</a>
+                  <span data-id="1094" class="badge badge-cuisine ml-2">New Mexican/Global</span>
+                  <span data-id="1095" class="badge badge-price ml-1">$$$</span>
+                  <p data-id="1096" class="text-sm text-dark/70 mt-1">Beloved farm-to-table café steps from the Plaza; organic ingredients and bold Southwestern fusion.</p>
+                </div>
+                <div data-id="1097" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="1098" href="https://www.google.com/maps/search/Tia+Sophias+Santa+Fe+New+Mexico" target="_blank" rel="noopener" class="restaurant-link">Tia Sophia's</a>
+                  <span data-id="1099" class="badge badge-cuisine ml-2">New Mexican</span>
+                  <span data-id="1100" class="badge badge-price ml-1">$$</span>
+                  <p data-id="1101" class="text-sm text-dark/70 mt-1">No-frills local favorite credited with coining "Christmas" (red &amp; green chile); cash only, massive portions, packed by 8am.</p>
+                </div>
+                <div data-id="1102" class="bg-white rounded-xl p-4 border border-[#e8e0d0]">
+                  <a data-id="1103" href="https://www.google.com/maps/search/La+Choza+Restaurant+Santa+Fe+New+Mexico" target="_blank" rel="noopener" class="restaurant-link">La Choza</a>
+                  <span data-id="1104" class="badge badge-cuisine ml-2">New Mexican</span>
+                  <span data-id="1105" class="badge badge-price ml-1">$$</span>
+                  <p data-id="1106" class="text-sm text-dark/70 mt-1">Sister restaurant to The Shed with equally incredible green chile stew and carne adovada — shorter wait times.</p>
+                </div>
+              </div>
+              <p data-id="1107" class="text-xs text-dark/50 mt-3 italic">Options range from ~$15–$100/person before tax &amp; tip.</p>
+            </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer data-id="1108" class="text-center py-6 text-dark/40 text-xs border-t border-[#d4c4a8]">
+      Made by Copilot
+    </footer>
+
+    <!-- DRIVE INFO MODAL -->
+    <div data-id="1109" id="drive-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);backdrop-filter:blur(3px);align-items:center;justify-content:center;">
+      <div data-id="1110" style="background:#fff;border-radius:16px;max-width:640px;width:92%;max-height:85vh;overflow-y:auto;padding:28px;box-shadow:0 24px 64px rgba(0,0,0,0.25);position:relative;">
+        <button data-id="1111" id="drive-modal-close" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1;">✕</button>
+        <h3 data-id="1112" id="drive-modal-title" style="font-family:Georgia,serif;font-size:20px;color:#8B2E0A;margin:0 0 14px;padding-right:30px;"></h3>
+        <div data-id="1113" id="drive-modal-body" style="font-size:14px;line-height:1.7;color:#2C1A0E;white-space:pre-line;"></div>
+    </div>
+
+    <!-- LEAFLET OVERVIEW MAP INIT -->
+    <script>
+    (function(){
+      function init(){
+        if(typeof L==='undefined'){setTimeout(init,150);return;}
+        var stops=[
+          {c:[36.1699,-115.1398],mo:'Oct',dy:'17',name:'Las Vegas, NV'},
+          {c:[37.1991,-112.9876],mo:'Oct',dy:'18',name:'Zion NP'},
+          {c:[37.6283,-112.1660],mo:'Oct',dy:'19',name:'Bryce Canyon'},
+          {c:[38.0877,-111.1499],mo:'Oct',dy:'21',name:'Capitol Reef'},
+          {c:[38.5733,-109.5498],mo:'Oct',dy:'22',name:'Moab / Arches'},
+          {c:[37.9375,-107.8123],mo:'Oct',dy:'24',name:'Telluride'},
+          {c:[37.2692,-107.0108],mo:'Oct',dy:'26',name:'Pagosa Springs'},
+          {c:[35.6870,-105.9378],mo:'Oct',dy:'27',name:'Santa Fe'}
+        ];
+        var map=L.map('overview-map',{zoomControl:true,scrollWheelZoom:false});
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:13}).addTo(map);
+        L.polyline(stops.map(function(s){return s.c;}),{color:'#C0623E',weight:2.5,dashArray:'7,6',opacity:0.85}).addTo(map);
+        stops.forEach(function(s){
+          var icon=L.divIcon({
+            className:'',
+            html:'<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">'+
+              '<div style="width:42px;height:42px;border-radius:50%;background:#C0623E;border:2.5px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,0.28);display:flex;flex-direction:column;align-items:center;justify-content:center;">'+
+              '<span style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.82);letter-spacing:0.4px;line-height:1;">'+s.mo+'</span>'+
+              '<span style="font-size:15px;font-weight:800;color:#fff;line-height:1;">'+s.dy+'</span>'+
+              '</div>'+
+              '<div style="background:rgba(44,22,10,0.78);color:#fff;font-size:9px;font-weight:600;padding:2px 7px;border-radius:4px;white-space:nowrap;">'+s.name+'</div>'+
+              '</div>',
+            iconSize:[42,68],iconAnchor:[21,21],popupAnchor:[0,-26]
+          });
+          L.marker(s.c,{icon:icon}).bindPopup('<b>'+s.name+'</b><br>'+s.mo+' '+s.dy).addTo(map);
+        });
+        map.fitBounds(L.featureGroup(stops.map(function(s){return L.circleMarker(s.c);})).getBounds().pad(0.1));
+      }
+      init();
+    })();
+    </script>
+
+    <script>
+      // ── DRIVE DESCRIPTIONS (global) ─────────────────────────────────────────
+      var DRIVE_DESCRIPTIONS = {
+        "Zion Canyon Scenic Drive": "The Zion Canyon Scenic Drive is a 6-mile road that follows the North Fork of the Virgin River deep into Zion Canyon. From late March through November, the road is closed to private vehicles and served by the park's free shuttle system — which turns out to be a blessing, because it means you can gaze at the canyon walls without worrying about the road.\n\nThe drive passes through some of the most dramatic vertical scenery in America. The canyon narrows progressively as you travel north: sandstone walls rise from hundreds of feet to over 2,000 feet, and the play of light on the Navajo Sandstone shifts from warm cream to deep orange depending on the time of day. In the morning, the east-facing walls catch the sun first and glow brilliant red-orange while the west side remains in cool blue shadow — a photographer's dream.\n\nKey stops along the way include the Court of the Patriarchs (three massive sandstone peaks named Abraham, Isaac, and Jacob), the Zion Lodge (the only in-park lodging, with a lovely emerald lawn), the Grotto (picnic area and trailhead for Angels Landing), and the Temple of Sinawava at the road's end — a natural amphitheater where the Riverside Walk begins and The Narrows beckons beyond.\n\nThe shuttle runs every 6–10 minutes at peak times, so you can hop on and off freely. Board at the Zion Canyon Visitor Center in Springdale. Plan a full day to do the drive justice — there's easily enough to fill one.",
+
+        "Kolob Canyons Scenic Drive": "Kolob Canyons is Zion's quieter, less-visited northwest section — and it deserves far more attention than it gets. The 5-mile scenic drive climbs from the I-15 exit through a series of dramatic red-rock finger canyons, each one a towering wall of Navajo Sandstone that seems to lean in toward the road.\n\nThe drive ends at Timber Creek Overlook, a short 1-mile round-trip trail that delivers panoramic views of the Pine Valley Mountains, the Kolob Terrace, and — on clear days — the distant North Rim of the Grand Canyon. The overlook is a perfect sunset spot and almost never crowded.\n\nThe rock formations here are visually distinct from the main canyon: instead of the narrow vertical walls of Zion Canyon, Kolob features massive, broad-shouldered mesa fins that glow deep red in late afternoon light. The colors are often more saturated than the main canyon because the iron-oxide content in this section of the Navajo Sandstone is particularly high.\n\nKolob Canyons has its own small visitor center at the I-15 exit (Exit 40), and there is no entrance fee beyond the standard Zion National Park pass. The drive takes about 30 minutes without stops, but allow 1–2 hours with photo stops and the overlook trail.\n\nIf you have a full day, the 14-mile round-trip Taylor Creek Trail leads to Double Arch Alcove — a massive natural amphitheater carved into the cliff face. But even a quick drive-through is deeply rewarding.",
+
+        "Rim Drive to Rainbow Point": "The Rim Drive is Bryce Canyon's main scenic corridor — an 18-mile road that runs along the eastern edge of the Paunsaugunt Plateau from the park entrance south to Rainbow Point at 9,115 feet. It's one of the most visually dense drives in the national park system: 13 named overlooks, each offering a different angle on the park's extraordinary hoodoo amphitheaters.\n\nThe recommended strategy is to drive all the way to Rainbow Point first, then work your way back north, stopping at overlooks as you go. This puts you on the canyon side of the road at every pullout (no dangerous left turns across traffic), and the light generally improves as the day progresses — the amphitheaters face east, so afternoon sun illuminates the hoodoos from behind you.\n\nRainbow Point itself is spectacular: the highest viewpoint in the park, with views stretching over 100 miles on clear days to Navajo Mountain and the Kaiparowits Plateau. The Bristlecone Loop Trail here (1 mile, easy) passes 1,800-year-old bristlecone pines clinging to the rim.\n\nOn the drive back north, don't miss Natural Bridge (a massive 85-foot arch framing a forested canyon below), Agua Canyon (where two towering hoodoo sentinels stand guard), and Ponderosa Canyon (a quieter overlook with stunning depth). The amphitheater viewpoints — Bryce Point, Inspiration Point, Sunset Point, Sunrise Point — cluster at the north end and deserve the most time.\n\nAllow 3–4 hours for the full drive with stops. In summer, start by 8am to beat tour bus crowds at the northern overlooks.",
+
+        "Utah Scenic Byway 12": "Utah Scenic Byway 12 is widely considered one of the most beautiful roads in the United States — and it's not close. The 122-mile highway runs from near Bryce Canyon east to Capitol Reef through some of the most varied and jaw-dropping landscape on the planet.\n\nThe road passes through four distinct geological provinces in just two hours of driving: the pink cliffs of Red Canyon, the vast eroded tablelands of the Grand Staircase-Escalante, the slickrock wilderness around Boulder, and the Waterpocket Fold approaching Capitol Reef. Each section looks like a different planet.\n\nThe most dramatic stretch is the Hogback — a narrow ridge between Escalante and Boulder where the road runs along a knife-edge with sheer drop-offs on both sides. There are pullouts where you can park and walk out on the ridge, looking down hundreds of feet into canyons on either side. It's not dangerous (the road is well-maintained and guardrailed), but it's vertigo-inducing in the best possible way.\n\nKey stops along the way: Head of the Rocks Overlook (panoramic view of the Escalante River watershed), Calf Creek Falls trailhead (5.5-mile round-trip to a 126-foot waterfall in a stunning slickrock canyon), Anasazi State Park Museum in Boulder (a remarkably well-preserved 1,000-year-old Ancestral Puebloan village), and the Homestead Overlook near Torrey.\n\nDo not rush this drive. It's tempting to treat it as a transit corridor between Bryce and Capitol Reef, but it deserves a full day. Pack lunch, bring water, and stop at every overlook that catches your eye. Many travelers say Byway 12 was the single best day of their entire Southwest trip.",
+
+        "Capitol Reef Scenic Drive": "The Capitol Reef Scenic Drive is an 8-mile paved road that runs south from the Fruita Historic District along the western face of the Waterpocket Fold — a 100-mile-long wrinkle in the earth's crust that defines the park. It's the main way to experience Capitol Reef's extraordinary geology up close without a hike.\n\nThe drive begins at the Fruita Schoolhouse (a preserved one-room pioneer schoolhouse from 1896) and passes through a landscape of tilted sandstone layers, each one a different era of geological history made visible. The rock colors shift from cream to salmon to deep chocolate as you drive, and the formations have evocative names: Egyptian Temple, Golden Throne, and the massive white dome of Capitol Reef itself (which reminded early settlers of the US Capitol building).\n\nAbout halfway down, the Grand Wash Road branches off east — a 1.5-mile spur into a narrow canyon with 800-foot walls. At the end of the scenic drive, the Capitol Gorge Road continues as a gravel track into another slot canyon where pioneer inscriptions from the 1870s–1910s are carved into the canyon walls.\n\nThe drive itself takes about 30 minutes without stops, but plan 2–3 hours with short walks, photo stops, and the Grand Wash or Capitol Gorge spur roads. There's a $20 vehicle fee for the scenic drive (separate from the free portions of the park along UT-24).\n\nBest time: late afternoon, when the western sun illuminates the east-facing cliff faces and the Waterpocket Fold glows like burnished copper.",
+
+        "Island in the Sky — Canyonlands": "Island in the Sky is the most accessible district of Canyonlands National Park — a broad, flat mesa perched 1,000 feet above a vast bench of white-rimmed canyon, which itself drops another 1,000 feet to the Colorado and Green Rivers below. The effect is of standing on a sky island floating above an ocean of stone.\n\nThe main park road runs 12 miles from the entrance station to Grand View Point, with spur roads to several overlooks. The signature experience is Mesa Arch — a small sandstone arch perched right on the canyon rim that, at sunrise, catches the reflected red light from the canyon floor below and appears to glow from within. It's a 0.5-mile walk from the parking area and one of the most photographed spots in Utah.\n\nGrand View Point, at the road's end, offers a 100-mile panorama of layered canyons, buttes, and the distant La Sal Mountains — a view so vast and complex that the brain struggles to process it. The 2-mile Grand View Trail continues along the rim for even more dramatic perspectives.\n\nOther essential stops: Green River Overlook (the single best view of the river's sinuous path through labyrinthine white-rimmed canyons), Upheaval Dome (a mysterious circular formation — either an ancient meteor impact or a collapsed salt dome, scientists still debate), and Buck Canyon Overlook.\n\nFrom Moab, it's a 35-minute drive to the entrance station. Plan a half day minimum — ideally arriving for Mesa Arch at sunrise and spending the morning working south to Grand View Point.",
+
+        "San Juan Mountains — Wildflower Season": "If you're in Telluride in mid-to-late July, you're witnessing one of nature's most spectacular shows: the San Juan Mountain wildflower bloom. The high alpine meadows above 10,000 feet explode with color — fields of columbine (Colorado's state flower), Indian paintbrush, lupine, alpine sunflower, and dozens of other species carpet the slopes in waves of blue, purple, red, yellow, and white.\n\nThe best way to access the wildflower meadows from Telluride is to ride the free gondola to Mountain Village, then continue to the upper station at San Sophia Ridge (or hike up from Mountain Village). From the ridge, trails fan out across meadows that in peak bloom look like someone spilled a watercolor palette across the mountainside.\n\nThe wildflower season is short and intense — typically peaking in the second and third weeks of July, though it varies by year and altitude. Lower meadows (9,000–10,000 feet) bloom first, with the highest alpine meadows (12,000+ feet) following a few weeks later.\n\nPopular wildflower hikes from Telluride include the Sneffels Highline Trail (moderate, spectacular), Bridal Veil Basin (follow the road past the falls into a high cirque), and the gondola-accessed trails around See Forever. Even a short walk from the gondola mid-station puts you in world-class wildflower terrain.\n\nThe San Juan Mountains receive more precipitation than most of the Colorado Rockies, which makes the bloom here particularly lush. Bring a macro lens if you have one.",
+
+        "Wolf Creek Pass Scenic Drive": "Wolf Creek Pass (US-160) crosses the Continental Divide at 10,857 feet between Pagosa Springs and the San Luis Valley — and it's one of Colorado's most beautiful mountain drives, particularly in late June through September when the high meadows are green and wildflower-dotted.\n\nThe western approach from Pagosa Springs climbs through a dense mixed forest of spruce, fir, and aspen, with the road winding through increasingly dramatic switchbacks as the tree line approaches. Near the summit, the forest opens up to reveal sweeping alpine meadows and long views of the surrounding San Juan peaks.\n\nThe pass is famous for its snow — Wolf Creek Ski Area, just east of the summit, routinely records the highest snowfall in Colorado (over 400 inches in good years). In summer, the ski area parking lots become trailheads for easy walks into the alpine zone.\n\nJust west of the pass, Treasure Falls is a can't-miss roadside stop: a 105-foot waterfall visible from the highway, with a short 0.5-mile trail to a viewpoint at its base. The falls run strongest in June during snowmelt but are photogenic all summer.\n\nThe drive from Pagosa Springs over the pass and back takes about 90 minutes without stops. If you're continuing east toward the San Luis Valley, the descent into the valley is spectacularly open — you emerge from the mountains into a vast high-altitude basin ringed by 14,000-foot peaks on all sides.",
+
+        "Bryce Point": "Bryce Point is the single best viewpoint in Bryce Canyon National Park — and that's saying something in a park full of extraordinary perspectives. Perched at 8,300 feet at the southern end of the main rim, it delivers a sweeping 180-degree panorama of the Silent City: a vast natural amphitheater packed with thousands of hoodoos arranged like a frozen stone army below you.\n\nAt sunset the transformation is astonishing. The hoodoos shift from dusty pink to brilliant orange to deep crimson as the light drops, and the shadows between the spires deepen into rich purple. On a clear evening, the last light catches the very tips of the tallest formations and ignites them like candles. Photographers start arriving 45 minutes before golden hour to stake their spot on the railing.\n\nAt sunrise it's equally magical in a completely different way — the pale pre-dawn light turns the amphitheater ghostly silver-blue, then the first rays paint the east-facing hoodoo walls in warm amber from the top down, as if the canyon is slowly catching fire.\n\nThe walk from the parking area to the point is less than 0.2 miles — essentially flat and paved. But for a more dramatic approach, hike the Rim Trail 1.5 miles south from Sunset Point; you arrive at Bryce Point having watched the landscape build to its climax rather than simply driving to it.\n\nPro tip: come for both sunrise and sunset if you can. They produce completely different moods and colors. Bring a layer regardless of the daytime temperature — the rim sits above 8,000 feet and drops fast after dark.",
+
+        "Sunrise & Sunset Point": "Sunrise and Sunset Points are Bryce Canyon's most iconic and accessible viewpoints — the places where first-time visitors usually stop, look over the edge, and immediately start reconsidering every assumption they ever had about what 'scenery' means.\n\nSunrise Point sits at 8,015 feet and faces northeast, making it the better of the two for actual sunrises (confusingly, given the name). In the pre-dawn stillness, the amphitheater below is completely silent and painted in shades of silver and deep blue. As the sun clears the Paunsaugunt Plateau, the hoodoos below warm from gray to rose-gold in a matter of minutes — one of the fastest and most dramatic light shows in nature.\n\nSunset Point, 1,000 feet to the south, overlooks a denser section of the hoodoo forest including Thor's Hammer — the famous isolated column that appears in nearly every Bryce Canyon photograph. The late afternoon light hits this section of the amphitheater at a perfect angle, turning the limestone and iron-oxide rock combinations into every shade between cream, salmon, coral, and deep terra cotta.\n\nBoth points connect via the paved Rim Trail, making it easy to walk between them (less than 0.5 miles) and catch both perspectives. The Navajo Loop and Queens Garden trailheads descend directly from Sunset Point, dropping you into the hoodoos rather than just looking at them from above — a perspective shift that makes the formations feel genuinely colossal.\n\nPlan at least 30 minutes at each viewpoint, more if the light is good. The lodge is a short walk from Sunset Point if you need coffee or a meal.",
+
+        "Dead Horse Point State Park": "Dead Horse Point is one of the most dramatic overlooks in the American West — and unlike the national parks, it's usually uncrowded enough that you can stand at the rim in near-silence and truly absorb what you're seeing.\n\nThe point sits 2,000 feet directly above a horseshoe meander of the Colorado River, creating a perspective that seems physically impossible. The river looks like a slender brown ribbon threading through an immense canyon of red and orange rock, and the scale only becomes clear when you realize that the 'ribbon' is actually hundreds of feet wide. The canyon walls below are so sheer and deep that the bottom receives sun for only a few hours a day.\n\nThe name comes from a grim bit of frontier history: the narrow neck of land connecting the point to the mesa was used as a natural corral for wild mustangs in the late 1800s. Cowboys would run horses onto the point, fence off the neck, select what they wanted, and leave the rest. A band of horses, confused by the water they could see but couldn't reach 2,000 feet below, reportedly died of thirst on the point. The bleached bones were visible for years afterward.\n\nSunrise here is extraordinary — the canyon fills with deep purple shadow while the rim catches the first gold of morning, and the Colorado begins to glow from above before the canyon floor sees any light at all. The Intrepid Trail system offers 9 miles of hiking and biking along the rim with the overlook as a constant backdrop.\n\nFrom Moab it's a 30-minute drive. Come before 9am or after 4pm in summer — midday light flattens the canyon into a washed-out postcard.",
+
+        "The Springs Resort & Spa": "The Springs Resort at Pagosa Springs sits on what is believed to be the world's deepest geothermal hot spring — the Great Pagosa Spring, which reaches temperatures of 144°F and has been measured to depths of over 1,000 feet without reaching its source. What this means practically is an extraordinary soaking experience unlike any other hot springs destination in the country.\n\nThe resort has 25 pools arranged along the San Juan River, each fed by the geothermal spring and cooled to different temperatures — ranging from a 112°F 'lobster pot' that requires courage and acclimation, down to a more comfortable 98°F for extended soaking. The pools step down toward the river's edge, and several are positioned so you soak in thermal water while looking directly at the cold rushing river a few feet away and the mountains beyond. At sunset, the steam rising from the pools catches the orange light in a way that's genuinely otherworldly.\n\nYou don't need to be a resort guest to soak — day passes are available and well worth it. The experience is casual and relaxed rather than precious: families, hikers fresh off the trail, and retirees all share the pools without the hustle of a tourist attraction.\n\nThe minerals in the water — sulfur, sodium, calcium, lithium among others — leave your skin feeling unusually soft afterward. Bring water to drink, as the heat is dehydrating, and plan to spend at least two hours working your way between temperatures. The best time is within an hour of sunset, when the light and temperature are both perfect.",
+
+        "Free Gondola to Mountain Village": "The Telluride-to-Mountain Village gondola is the only free public gondola in North America — a 13-minute ride that has become one of the defining experiences of any Telluride visit, and one of the most unexpectedly wonderful things you can do in Colorado for zero dollars.\n\nThe gondola runs 1.6 miles and climbs roughly 1,000 feet from the historic town of Telluride up to Mountain Village, the purpose-built ski resort community on the opposite side of the mountain. It operates year-round (except for brief maintenance periods) from early morning to late evening, and you can ride it as many times as you like for free.\n\nFrom the gondola cabin — a comfortable enclosed pod that fits about 8 people — the views open progressively as you climb: first the Victorian rooftops and tree-lined streets of Telluride below, then the entire valley broadening out to reveal the dramatic cirque of 13,000-14,000-foot peaks that surround the town on three sides. In July, those peaks and the meadows below them are carpeted in wildflowers. In winter, skiers descend directly beneath the gondola on runs that look near-vertical from the cabin.\n\nThe mid-station at San Sophia Ridge (11,000 feet) offers a 360-degree panorama that stops conversations cold. Mountain Village itself has restaurants, galleries, and the start of the ski runs — but many visitors simply ride up, walk around the ridge for 20 minutes, and ride back down. There is genuinely no better free thing to do in Colorado."
+      };
+
+      // ── All DOM interactions wrapped in DOMContentLoaded ─────────────────────
+      document.addEventListener('DOMContentLoaded', function () {
+
+        // Progressive icon enhancement
+        try {
+          if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+            lucide.createIcons();
+          }
+        } catch(e) {}
+
+        // ── SCENIC DRIVE POPUP ─────────────────────────────────────────────────
+        try {
+          window.openDriveInfo = function(title) {
+            var cleanTitle = (title || '').replace(/&amp;/g, '&');
+            var desc = DRIVE_DESCRIPTIONS[cleanTitle] || DRIVE_DESCRIPTIONS[title];
+            if (!desc) { return; }
+            var modal  = document.getElementById('drive-modal');
+            var titleEl = document.getElementById('drive-modal-title');
+            var bodyEl  = document.getElementById('drive-modal-body');
+            if (!modal || !titleEl || !bodyEl) { return; }
+            titleEl.textContent = cleanTitle;
+            bodyEl.textContent  = desc;
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+          };
+
+          document.querySelectorAll('.drive-link').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+              e.preventDefault();
+              window.openDriveInfo(btn.getAttribute('data-drive-title') || btn.textContent.trim());
+            });
+          });
+
+          var driveModal = document.getElementById('drive-modal');
+          var driveClose = document.getElementById('drive-modal-close');
+          function closeDrive() {
+            if (driveModal) { driveModal.style.display = 'none'; document.body.style.overflow = ''; }
+          }
+          if (driveClose) driveClose.addEventListener('click', closeDrive);
+          if (driveModal) driveModal.addEventListener('click', function(e) { if (e.target === driveModal) closeDrive(); });
+          document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeDrive(); });
+        } catch(e) { console.error('Scenic drive popup error:', e); }
+
+        // ── TAB NAVIGATION ─────────────────────────────────────────────────────
+        try {
+          var navEl = document.getElementById('tab-nav-e5f6');
+          document.querySelectorAll('.tab-btn[data-tab]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+              btn.classList.add('active');
+              var target = document.getElementById(btn.dataset.tab);
+              if (target) {
+                var navH = navEl ? navEl.offsetHeight : 64;
+                window.scrollTo({ top: target.getBoundingClientRect().top + window.pageYOffset - navH - 16, behavior: 'smooth' });
+              }
+            });
+          });
+
+          // Active tab on scroll
+          var sections = document.querySelectorAll('.dest-section');
+          var tabBtns  = document.querySelectorAll('.tab-btn[data-tab]');
+          var scrollTout;
+          window.addEventListener('scroll', function() {
+            if (scrollTout) return;
+            scrollTout = setTimeout(function() {
+              scrollTout = null;
+              var navH = (navEl ? navEl.offsetHeight : 64) + 32;
+              var current = '';
+              sections.forEach(function(sec) {
+                if (sec.getBoundingClientRect().top < navH + 100) current = sec.id;
+              });
+              if (current) tabBtns.forEach(function(b) { b.classList.toggle('active', b.dataset.tab === current); });
+            }, 80);
+          });
+        } catch(e) { console.error('Tab nav error:', e); }
+
+        // ── DOWNLOAD / PRINT BUTTON ────────────────────────────────────────────
+        try {
+          var printBtn = document.getElementById('print-btn-a1b2');
+          if (printBtn) {
+            printBtn.addEventListener('click', function() {
+              try {
+                var blob = new Blob([document.documentElement.outerHTML], {type: 'text/html'});
+                var url  = URL.createObjectURL(blob);
+                var a    = document.createElement('a');
+                a.href   = url; a.download = 'southwest-road-trip-itinerary.html';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+              } catch(e2) { window.print(); }
+            });
+          }
+        } catch(e) { console.error('Print button error:', e); }
+
+        // ── LEAFLET RESIZE ─────────────────────────────────────────────────────
+        try {
+          setTimeout(function() {
+            document.querySelectorAll('.leaflet-container').forEach(function(c) {
+              if (c._leaflet_map) c._leaflet_map.invalidateSize();
+            });
+          }, 400);
+        } catch(e) {}
+
+      }); // end DOMContentLoaded
+    </script>
+
+    <script>
+    // ── Service Worker (blob URL — caches CDN assets for offline use) ──
+    if ('serviceWorker' in navigator) {
+      var swCode = [
+        "const CACHE = 'sw-road-trip-v1';",
+        "const CDN = [",
+        "  'https://cdn.tailwindcss.com',",
+        "  'https://unpkg.com/lucide@latest',",
+        "];",
+        "self.addEventListener('install', function(e) {",
+        "  e.waitUntil(caches.open(CACHE).then(function(c) {",
+        "    return Promise.allSettled(CDN.map(function(u) { return c.add(u).catch(function(){}); }));",
+        "  }));",
+        "  self.skipWaiting();",
+        "});",
+        "self.addEventListener('activate', function(e) {",
+        "  e.waitUntil(clients.claim());",
+        "});",
+        "self.addEventListener('fetch', function(e) {",
+        "  if (CDN.some(function(u) { return e.request.url.startsWith(u); })) {",
+        "    e.respondWith(caches.match(e.request).then(function(r) { return r || fetch(e.request); }));",
+        "  }",
+        "});",
+      ].join('\n');
+      try {
+        var swBlob = new Blob([swCode], {type: 'application/javascript'});
+        var swUrl = URL.createObjectURL(swBlob);
+        navigator.serviceWorker.register(swUrl).catch(function() {});
+      } catch(e) {}
+    }
+
+    // ── Install prompt ──
+    var deferredPrompt = null;
+    var installBtn = document.getElementById('pwa-install-btn');
+
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (installBtn) installBtn.style.display = 'flex';
+    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', function() {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function() {
+          deferredPrompt = null;
+          installBtn.style.display = 'none';
+        });
+      });
+    }
+
+    window.addEventListener('appinstalled', function() {
+      if (installBtn) installBtn.style.display = 'none';
+      deferredPrompt = null;
+    });
+    </script>
+
+    <!-- PWA: Enhanced installability with canvas-generated icons and manifest -->
+    <script>
+    (function () {
+      /* ── 1. Generate icons via canvas ── */
+      function makeIcon(size) {
+        var c = document.createElement('canvas');
+        c.width = c.height = size;
+        var ctx = c.getContext('2d');
+        // Background
+        ctx.fillStyle = '#C0623E';
+        ctx.beginPath();
+        ctx.roundRect(0, 0, size, size, size * 0.18);
+        ctx.fill();
+        // Map emoji
+        ctx.font = (size * 0.52) + 'px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🗺️', size / 2, size / 2 + size * 0.03);
+        return c.toDataURL('image/png');
+      }
+      var icon192, icon512;
+      try { icon192 = makeIcon(192); icon512 = makeIcon(512); } catch(e) {}
+
+      /* ── 2. Inject manifest as blob URL ── */
+      var manifest = {
+        name: 'Southwest Road Trip — Oct 2025',
+        short_name: 'SW Road Trip',
+        description: 'Day-by-day itinerary: Utah National Parks · Telluride · Pagosa Springs · Santa Fe',
+        start_url: window.location.pathname || '/',
+        scope: window.location.pathname || '/',
+        display: 'standalone',
+        orientation: 'any',
+        background_color: '#F5EFE0',
+        theme_color: '#C0623E',
+        categories: ['travel', 'lifestyle'],
+        icons: [
+          { src: icon192 || '', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: icon512 || '', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+        ]
+      };
+      try {
+        var mBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+        var mUrl = URL.createObjectURL(mBlob);
+        var mLink = document.createElement('link');
+        mLink.rel = 'manifest';
+        mLink.href = mUrl;
+        document.head.appendChild(mLink);
+      } catch(e) {}
+
+      /* ── 3. Register a minimal service worker (best-effort) ── */
+      if ('serviceWorker' in navigator) {
+        var swSrc = [
+          "var CACHE='sw-road-trip-v2';",
+          "self.addEventListener('install',function(e){self.skipWaiting();});",
+          "self.addEventListener('activate',function(e){e.waitUntil(clients.claim());});",
+          "self.addEventListener('fetch',function(e){",
+          "  e.respondWith(caches.open(CACHE).then(function(c){",
+          "    return c.match(e.request).then(function(r){",
+          "      return r||fetch(e.request).then(function(res){",
+          "        c.put(e.request,res.clone());return res;",
+          "      });",
+          "    });",
+          "  }));",
+          "});"
+        ].join('\n');
+        try {
+          var swBlob2 = new Blob([swSrc], { type: 'application/javascript' });
+          var swUrl2 = URL.createObjectURL(swBlob2);
+          navigator.serviceWorker.register(swUrl2, { scope: '/' }).catch(function(){});
+        } catch(e) {}
+      }
+
+      /* ── 4. Install prompt button (fixed position, complements header button) ── */
+      var deferredPrompt2 = null;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredPrompt2 = e;
+        showFixedInstallBtn();
+      });
+
+      function showFixedInstallBtn() {
+        if (document.getElementById('pwa-install-btn-fixed')) return;
+        var btn = document.createElement('button');
+        btn.id = 'pwa-install-btn-fixed';
+        btn.className = 'no-print';
+        btn.innerHTML = '⬇️ Install App';
+        btn.style.cssText = [
+          'position:fixed;bottom:1.25rem;right:1.25rem;z-index:9999;',
+          'background:#C0623E;color:#fff;border:none;border-radius:2rem;',
+          'padding:0.6rem 1.2rem;font-size:0.82rem;font-weight:700;',
+          'box-shadow:0 4px 16px rgba(0,0,0,0.22);cursor:pointer;',
+          'font-family:inherit;letter-spacing:0.02em;',
+          'transition:background 0.2s,transform 0.15s;'
+        ].join('');
+        btn.addEventListener('mouseenter', function(){ btn.style.background='#a04e30'; btn.style.transform='scale(1.04)'; });
+        btn.addEventListener('mouseleave', function(){ btn.style.background='#C0623E'; btn.style.transform='scale(1)'; });
+        btn.addEventListener('click', function () {
+          if (deferredPrompt2) {
+            deferredPrompt2.prompt();
+            deferredPrompt2.userChoice.then(function (r) {
+              if (r.outcome === 'accepted') btn.remove();
+              deferredPrompt2 = null;
+            });
+          }
+        });
+        document.body.appendChild(btn);
+      }
+
+      window.addEventListener('appinstalled', function () {
+        var b = document.getElementById('pwa-install-btn-fixed');
+        if (b) b.remove();
+        deferredPrompt2 = null;
+      });
+    })();
+    </script>
+
+
+
+
+  <!-- Version footer -->
+  <footer class="no-print" style="text-align:center;padding:1.5rem 1rem 2.5rem;font-size:0.72rem;color:#a8917a;letter-spacing:0.05em;border-top:1px solid #e8ddd0;margin-top:2rem;">
+    SW Road Trip Itinerary &nbsp;·&nbsp; v2.5 &nbsp;·&nbsp; Updated July 8, 2026
+  </footer>
+</body>
+</html>

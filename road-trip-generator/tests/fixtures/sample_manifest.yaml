@@ -1,0 +1,25 @@
+trip:
+  title: "Test Road Trip"
+  subtitle: "Test Dates — Test States"
+  theme_color: "#2E6B8A"
+
+destinations:
+  - id: zion
+    name: "Zion National Park"
+    dates: "October 7–9, 2026"
+    planning_links:
+      - label: "Zion Lodge"
+        url: "https://www.zionlodge.com/"
+    seeds:
+      - "Angels Landing"
+      - "The Narrows"
+
+  - id: moab
+    name: "Moab, Utah"
+    dates: "October 13–16, 2026"
+    planning_links:
+      - label: "Moab Trip Notes"
+        url: "https://notion.so/REPLACE"
+    seeds:
+      - "Delicate Arch"
+      - "Mesa Arch"

@@ -1,0 +1,154 @@
+# ============================================================
+# Southwest Road Trip — Trip Manifest
+# Reverse-engineered from itinerary v2.5 for generator testing
+# ============================================================
+#
+# SCHEMA NOTES (v0.4):
+#   - google_maps_link: AUTO-GENERATED from ordered destinations
+#   - lat/lng:          AUTO-RESOLVED via Nominatim geocoding
+#   - nps_park_code:    AUTO-DETECTED from destination name
+#   - weather_url:      AUTO-CONSTRUCTED from lat/lng
+#   - scenic drives:    FULLY AI-DISCOVERED — not seeded here
+#   - cultural events:  FULLY AI-DISCOVERED via Bing Search
+#   - seeds:            Attraction/hike/experience name hints only
+#                       (things the traveler specifically intends to include)
+#
+# PLANNING LINKS: Replace placeholder URLs with your actual
+#                 Notion, TripIt, or reservation links.
+# ============================================================
+
+trip:
+  title: "Southwest Road Trip"
+  subtitle: "October 2026 — Utah, Colorado & New Mexico"
+  theme_color: "#C0623E"        # terracotta — nav, headers, map markers
+
+destinations:
+
+  # ── 1. ZION NATIONAL PARK ─────────────────────────────────
+  - id: zion
+    name: "Zion National Park"
+    dates: "October 7–9, 2026"
+
+    planning_links:
+      - label: "Zion Trip Notes"
+        url: "https://notion.so/REPLACE_WITH_YOUR_LINK"
+      - label: "Zion Lodge Reservation"
+        url: "https://www.zionlodge.com/"
+
+    seeds:
+      - "Angels Landing"
+      - "The Narrows"
+      - "Emerald Pools Trail"
+      - "Canyon Overlook Trail"
+      - "Weeping Rock"
+      - "Kolob Canyons"
+
+  # ── 2. BRYCE CANYON NATIONAL PARK ────────────────────────
+  - id: bryce
+    name: "Bryce Canyon National Park"
+    dates: "October 9–11, 2026"
+
+    planning_links:
+      - label: "Bryce Trip Notes"
+        url: "https://notion.so/REPLACE_WITH_YOUR_LINK"
+      - label: "Bryce Canyon Lodge"
+        url: "https://www.brycecanyonforever.com/lodging/bryce-canyon-lodge/"
+
+    seeds:
+      - "Navajo Loop Trail"
+      - "Queens Garden Trail"
+      - "Sunrise Point"
+      - "Bryce Point"
+      - "Dark Sky Stargazing"
+      - "Fairyland Loop"
+
+  # ── 3. CAPITOL REEF NATIONAL PARK ────────────────────────
+  - id: capitolreef
+    name: "Capitol Reef National Park"
+    dates: "October 11–13, 2026"
+
+    planning_links:
+      - label: "Capitol Reef Trip Notes"
+        url: "https://notion.so/REPLACE_WITH_YOUR_LINK"
+
+    seeds:
+      - "Hickman Bridge"
+      - "Grand Wash Trail"
+      - "Cassidy Arch"
+      - "Fremont Petroglyphs"
+      - "Fruita Historic District"
+      - "Gifford Homestead"
+
+  # ── 4. MOAB ───────────────────────────────────────────────
+  - id: moab
+    name: "Moab"
+    dates: "October 13–15, 2026"
+
+    planning_links:
+      - label: "Moab Trip Notes"
+        url: "https://notion.so/REPLACE_WITH_YOUR_LINK"
+      - label: "Arches Timed Entry"
+        url: "https://www.recreation.gov/timed-entry/10086910"
+
+    seeds:
+      - "Delicate Arch"
+      - "Landscape Arch"
+      - "Island in the Sky"
+      - "Mesa Arch"
+      - "Dead Horse Point State Park"
+      - "Corona Arch Trail"
+
+  # ── 5. TELLURIDE ──────────────────────────────────────────
+  - id: telluride
+    name: "Telluride"
+    dates: "October 15–17, 2026"
+
+    planning_links:
+      - label: "Telluride Trip Notes"
+        url: "https://notion.so/REPLACE_WITH_YOUR_LINK"
+      - label: "Lodging"
+        url: "https://www.telluride.com/lodging/"
+
+    seeds:
+      - "Bridal Veil Falls"
+      - "Bear Creek Trail"
+      - "Jud Wiebe Trail"
+      - "Free Gondola to Mountain Village"
+      - "Historic Main Street"
+
+  # ── 6. PAGOSA SPRINGS ─────────────────────────────────────
+  - id: pagosa
+    name: "Pagosa Springs"
+    dates: "October 17–18, 2026"
+
+    planning_links:
+      - label: "Pagosa Trip Notes"
+        url: "https://notion.so/REPLACE_WITH_YOUR_LINK"
+      - label: "The Springs Resort"
+        url: "https://www.pagosahotsprings.com/"
+
+    seeds:
+      - "The Springs Resort & Spa"
+      - "Treasure Falls"
+      - "Chimney Rock National Monument"
+      - "Piedra Falls"
+      - "San Juan River Fly Fishing"
+
+  # ── 7. SANTA FE ───────────────────────────────────────────
+  - id: santafe
+    name: "Santa Fe"
+    dates: "October 18–20, 2026"
+
+    planning_links:
+      - label: "Santa Fe Trip Notes"
+        url: "https://notion.so/REPLACE_WITH_YOUR_LINK"
+      - label: "Inn on the Alameda"
+        url: "https://www.innonthealameda.com/"
+
+    seeds:
+      - "Georgia O'Keeffe Museum"
+      - "Canyon Road Gallery District"
+      - "Museum of International Folk Art"
+      - "Meow Wolf: House of Eternal Return"
+      - "Santa Fe Plaza & Palace of the Governors"
+      - "Bandelier National Monument"

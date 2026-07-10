@@ -1,0 +1,160 @@
+# Road Trip Itinerary Generator — Configuration
+# Version: 1.2.0
+# All secrets come from environment variables. Never store keys here.
+
+# ── Template ─────────────────────────────────────────────────────────────────
+template:
+  path: "templates/v2.5_template.html"
+  checksum_path: "templates/checksums.txt"
+  version: "2.5"
+  verify_checksum: true
+
+# ── Azure OpenAI ─────────────────────────────────────────────────────────────
+azure_openai:
+  # Keys read from env: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY,
+  #                     AZURE_OPENAI_DEPLOYMENT, AZURE_OPENAI_API_VERSION
+  temperature: 0.7
+  max_tokens: 4096
+  retry_attempts: 3
+  retry_backoff_seconds: 2
+
+# ── Brave Search API ──────────────────────────────────────────────────────────
+# Replaces: Bing Search API v7 (retired August 11, 2025)
+#           Google Custom Search (full-web deprecated, June 2025)
+# Sign up:  https://api.search.brave.com  (free, no credit card)
+# Free tier: 2,000 queries/month
+# Key read from env: BRAVE_SEARCH_API_KEY
+brave_search:
+  endpoint: "https://api.search.brave.com/res/v1/web/search"
+  results_per_query: 8
+  retry_attempts: 3
+  timeout_seconds: 10
+  request_delay_seconds: 0.25
+
+# ── NPS API ──────────────────────────────────────────────────────────────────
+nps:
+  # Key read from env: NPS_API_KEY — falls back to "DEMO_KEY" if unset
+  # Free key: https://www.nps.gov/subjects/developer/get-started.htm
+  endpoint: "https://developer.nps.gov/api/v1"
+  image_count: 3
+
+# ── Wikimedia Commons ─────────────────────────────────────────────────────────
+wikimedia:
+  thumb_width: 960
+  api_endpoint: "https://commons.wikimedia.org/w/api.php"
+
+# ── Image acquisition ─────────────────────────────────────────────────────────
+images:
+  per_destination: 3
+  min_per_destination: 2
+  max_per_destination: 4
+  max_fallback_attempts: 4
+  verify_timeout_seconds: 8
+  valid_content_types:
+    - "image/jpeg"
+    - "image/png"
+    - "image/webp"
+    - "image/gif"
+
+# ── URL verification ──────────────────────────────────────────────────────────
+url_verification:
+  timeout_seconds: 10
+  user_agent: "RoadTripItineraryGenerator/1.0"
+  max_redirects: 5
+  head_only: true
+
+# ── Link type taxonomy ────────────────────────────────────────────────────────
+# URL discovery runs TWO passes for restaurants:
+#   Pass 1: google.com/maps  (top-rated, well-documented)
+#   Pass 2: tripadvisor.com  (local favorites, cuisine diversity)
+link_types:
+
+  hike:
+    icon: "footprints"
+    badge_label: "View Trail"
+    badge_color: "green"
+    rendering_target: "top_attractions"
+    discovery_site_filter: "alltrails.com"
+    nps_site_filter: true
+    url_allowed: true
+
+  scenic_drive:
+    icon: "map"
+    badge_label: "Scenic Drive Info"
+    badge_color: "amber"
+    rendering_target: "scenic_drives_popup"
+    discovery_site_filter: null
+    url_allowed: false
+
+  attraction:
+    icon: "landmark"
+    badge_label: "Learn More"
+    badge_color: "blue"
+    rendering_target: "top_attractions"
+    discovery_site_filter: null
+    nps_site_filter: true
+    url_allowed: true
+
+  viewpoint:
+    icon: "eye"
+    badge_label: "View Point"
+    badge_color: "sky"
+    rendering_target: "top_attractions"
+    discovery_site_filter: null
+    url_allowed: true
+
+  restaurant:
+    icon: "utensils"
+    badge_label: "View on Maps"
+    badge_color: "rose"
+    rendering_target: "dinner_recommendations"
+    discovery_passes:
+      - site_filter: "google.com/maps"
+      - site_filter: "tripadvisor.com"
+    url_allowed: true
+
+  planning:
+    icon: "calendar"
+    badge_label: null
+    badge_color: "purple"
+    rendering_target: "header"
+    discovery_site_filter: null
+    url_allowed: true
+
+# ── Geocoding ─────────────────────────────────────────────────────────────────
+geocoding:
+  provider: "nominatim"
+  user_agent: "RoadTripItineraryGenerator/1.0"
+  timeout_seconds: 5
+  retry_attempts: 2
+  rate_limit_seconds: 1.1
+
+# ── Cultural events discovery ─────────────────────────────────────────────────
+cultural_events:
+  primary_query_template: "{destination} events {month} {year}"
+  secondary_query_template: "{destination} festivals concerts cultural {month} {year}"
+  max_results: 8
+  target_events_per_destination: 3
+  verify_event_urls: true
+
+# ── URL discovery ─────────────────────────────────────────────────────────────
+url_discovery:
+  max_attempts_per_item: 4
+  verify_timeout_seconds: 10
+  restaurant_passes: 2
+
+# ── Output validation ─────────────────────────────────────────────────────────
+validation:
+  check_div_balance: true
+  check_script_isolation: true
+  check_all_links: true
+  fail_on_broken_links: false
+  fail_on_broken_images: true
+  min_images_per_destination: 2
+  report_path: "output/validation_report.json"
+
+# ── Output ────────────────────────────────────────────────────────────────────
+output:
+  path: "output/index.html"
+  encoding: "utf-8"
+  write_validation_report: true

@@ -1,0 +1,71 @@
+{
+  "expected_environment": "Peak cottonwood fall color in the canyon — brilliant gold against red canyon walls. Expect 60–80°F days and 35–45°F nights. The park shuttle is required into Zion Canyon; no private vehicles. Noticeably fewer crowds than summer. Water in The Narrows will be cool (~55°F) — wetsuit rentals available in Springdale.",
+  "getting_here": {
+    "from_previous": "Drive north on I-15 from Las Vegas (2.5 hours) or south from Salt Lake City (4.5 hours). Enter via the south entrance at Springdale.",
+    "en_route_stops": [
+      {
+        "name": "Kolob Canyons Viewpoint",
+        "highway_reference": "I-15 Exit 40",
+        "description": "Five soaring red finger canyons visible from a short 0.2-mile paved walk. Often overlooked by canyon-bound visitors.",
+        "time_required": "30 minutes"
+      }
+    ]
+  },
+  "top_attractions": [
+    {
+      "name": "Angels Landing",
+      "description": "Iconic summit hike with chain-assist final push and 360° canyon panoramas.",
+      "difficulty": "Strenuous",
+      "duration": "4–5 hours",
+      "must_see": true,
+      "practical_note": "Permit required via NPS lottery ($6/person). Book 3 months ahead."
+    },
+    {
+      "name": "The Narrows",
+      "description": "Wade through the Virgin River between 2,000-foot slot canyon walls. Water ~55°F in October.",
+      "difficulty": "Moderate",
+      "duration": "4–6 hours",
+      "must_see": true,
+      "practical_note": "Rent neoprene socks and dry pants from Zion Adventure Company in Springdale."
+    }
+  ],
+  "possible_daily_schedule": [
+    "7:00 AM — Board shuttle at Springdale Visitor Center (arrives before crowds)",
+    "8:00–12:00 PM — Angels Landing (permits required)",
+    "1:00–2:00 PM — Lunch at Zion Lodge cafeteria or Castle Dome Cafe",
+    "3:00–5:30 PM — Canyon Overlook Trail (no shuttle needed, dramatic views)",
+    "6:30 PM — Dinner in Springdale"
+  ],
+  "dinner_recommendations": [
+    {
+      "name": "Spotted Dog Cafe",
+      "cuisine": "American",
+      "price": "$$",
+      "description": "Beloved local institution inside Flanigan's Inn. Wild game specials, local craft beer."
+    },
+    {
+      "name": "Zion Pizza & Noodle Co",
+      "cuisine": "Pizza/Italian",
+      "price": "$",
+      "description": "Casual, cash-friendly spot in a converted church. Best value in Springdale."
+    },
+    {
+      "name": "King's Landing Bistro",
+      "cuisine": "American/Contemporary",
+      "price": "$$$",
+      "description": "Upscale patio dining with canyon views. Excellent steaks and seasonal specials."
+    },
+    {
+      "name": "Deep Creek Coffee Co",
+      "cuisine": "Cafe/Light fare",
+      "price": "$",
+      "description": "Breakfast and light lunch. Best espresso in Springdale, outdoor seating."
+    },
+    {
+      "name": "MeMe's Cafe",
+      "cuisine": "American/Breakfast",
+      "price": "$",
+      "description": "Community staple. Enormous portions, friendly staff, patio view of canyon walls."
+    }
+  ]
+}
