@@ -1,7 +1,7 @@
 """Tests for generator.manifest_parser"""
 import pytest
 from pathlib import Path
-from generator.manifest_parser import ManifestParser
+from generator.parser import ManifestParser
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -112,3 +112,28 @@ destinations:
     parser = ManifestParser()
     trip = parser.load(str(f))
     assert trip["trip"]["llm"]["provider"] == "anthropic"
+
+
+def test_trip_llm_provider_and_features_schema_valid(tmp_path):
+    manifest_content = """
+trip:
+  title: "Grok Test"
+  subtitle: "Schema"
+  theme_color: "#123456"
+  llm_provider: "grok"
+  llm_features:
+    code_execution: true
+destinations:
+  - id: test
+    name: "Test Destination"
+    dates: "Jan 1-3, 2026"
+    planning_links:
+      - label: "Notes"
+        url: "https://example.com"
+"""
+    f = tmp_path / "grok_manifest.yaml"
+    f.write_text(manifest_content, encoding="utf-8")
+    parser = ManifestParser()
+    trip = parser.load(str(f))
+    assert trip["trip"]["llm_provider"] == "grok"
+    assert trip["trip"]["llm_features"]["code_execution"] is True

@@ -24,12 +24,30 @@ MANIFEST_SCHEMA: dict[str, Any] = {
                 "title": {"type": "string"},
                 "subtitle": {"type": "string"},
                 "theme_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+                "llm_provider": {
+                    "type": "string",
+                    "enum": ["openai", "anthropic", "deepseek", "gemini", "grok", "azure_openai"],
+                },
+                "llm_features": {
+                    "type": "object",
+                    "properties": {
+                        "code_execution": {"const": True},
+                    },
+                    "additionalProperties": False,
+                },
                 "llm": {
                     "type": "object",
                     "properties": {
                         "provider": {
                             "type": "string",
-                            "enum": ["openai", "anthropic", "deepseek", "gemini", "azure_openai"],
+                            "enum": ["openai", "anthropic", "deepseek", "gemini", "grok", "azure_openai"],
+                        },
+                        "features": {
+                            "type": "object",
+                            "properties": {
+                                "code_execution": {"const": True},
+                            },
+                            "additionalProperties": False,
                         },
                         "model": {"type": "string", "minLength": 2},
                         "temperature": {"type": "number", "minimum": 0.0, "maximum": 1.0},

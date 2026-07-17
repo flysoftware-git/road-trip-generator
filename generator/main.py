@@ -42,7 +42,7 @@ def _setup_logging(verbose: bool) -> None:
 @click.option("--config", "config_path", default="config.yaml", show_default=True, help="Config YAML")
 @click.option(
     "--llm-provider",
-    type=click.Choice(["openai", "anthropic", "deepseek", "gemini", "azure_openai"], case_sensitive=False),
+    type=click.Choice(["openai", "anthropic", "deepseek", "gemini", "grok", "azure_openai"], case_sensitive=False),
     help="Override LLM provider for this run",
 )
 @click.option("--llm-model", type=str, help="Override LLM model for this run")
@@ -83,7 +83,7 @@ def main(
 
     # ── Stage 1: Parse & validate manifest ──────────────────────────────────
     click.echo("Stage 1/6 — Parsing manifest…")
-    from generator.manifest_parser import ManifestParser
+    from generator.parser import ManifestParser
     parser = ManifestParser()
     trip = parser.load(manifest)
 
@@ -119,7 +119,12 @@ def main(
     click.echo("Stage 3/6 — AI content generation…")
     from generator.llm_client import MultiLLMClient
     from generator.ai_content import AIContentGenerator
+    from generator.costs import print_cost_summary, summarize_from_usage
     llm_overrides = dict(trip.get("trip", {}).get("llm", {}))
+    if trip.get("trip", {}).get("llm_provider"):
+        llm_overrides["provider"] = trip["trip"].get("llm_provider")
+    if trip.get("trip", {}).get("llm_features"):
+        llm_overrides["features"] = trip["trip"].get("llm_features")
     if llm_provider:
         llm_overrides["provider"] = llm_provider.lower()
     if llm_model:
@@ -191,6 +196,14 @@ def main(
     report = validator.validate(output_file, trip)
     report_path = ReportWriter(output_dir).write(report)
     click.echo(f"  ✓ Validation report: {report_path}")
+
+    predicted_cost, actual_cost = summarize_from_usage(trip.get("_meta", {}).get("llm", {}).get("usage", {}))
+    print_cost_summary(
+        model=trip.get("_meta", {}).get("llm", {}).get("model", llm_client.model),
+        manifest_path=manifest,
+        predicted_usd=predicted_cost,
+        actual_usd=actual_cost,
+    )
 
     if not report["valid"]:
         click.echo(f"\n⚠️  {report['error_count']} validation error(s) found:", err=True)

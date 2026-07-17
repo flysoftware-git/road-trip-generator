@@ -57,6 +57,7 @@ Required variables:
 | `ANTHROPIC_API_KEY` | Anthropic API key (when `ai.provider: anthropic`) |
 | `DEEPSEEK_API_KEY` | DeepSeek API key (when `ai.provider: deepseek`) |
 | `GEMINI_API_KEY` | Gemini API key (when `ai.provider: gemini`) |
+| `GROK_API_KEY` | Grok API key (when `ai.provider: grok`) |
 | `BRAVE_SEARCH_API_KEY` | Brave Web Search API key |
 
 Optional:
@@ -122,7 +123,7 @@ python -m generator.main [OPTIONS]
   --manifest PATH          Trip manifest YAML (required)
   --output PATH            Output directory [default: output/]
   --config PATH            Config YAML [default: config.yaml]
-  --llm-provider [openai|anthropic|deepseek|gemini|azure_openai]
+  --llm-provider [openai|anthropic|deepseek|gemini|grok|azure_openai]
                            Override LLM provider for this run
   --llm-model TEXT         Override LLM model for this run
   --dry-run                Parse & validate manifest only; no AI calls

@@ -6,6 +6,7 @@ Supported providers:
   - anthropic
   - deepseek (OpenAI-compatible)
   - gemini
+    - grok (OpenAI-compatible)
   - azure_openai (legacy compatibility)
 """
 from __future__ import annotations
@@ -18,6 +19,7 @@ from typing import Any
 
 import requests
 from openai import AzureOpenAI, OpenAI
+from generator.llm.router import LLMRouter
 
 
 DEFAULT_PRICING_USD_PER_1M: dict[str, dict[str, float]] = {
@@ -25,6 +27,7 @@ DEFAULT_PRICING_USD_PER_1M: dict[str, dict[str, float]] = {
     "openai:gpt-4o-mini": {"input": 0.15, "output": 0.60},
     "deepseek:deepseek-chat": {"input": 0.27, "output": 1.10},
     "deepseek:deepseek-reasoner": {"input": 0.55, "output": 2.19},
+    "grok:grok-2-latest": {"input": 2.00, "output": 10.00},
     "anthropic:claude-3-5-sonnet-latest": {"input": 3.00, "output": 15.00},
     "anthropic:claude-3-7-sonnet-latest": {"input": 3.00, "output": 15.00},
     "gemini:gemini-1.5-pro": {"input": 3.50, "output": 10.50},
@@ -149,6 +152,12 @@ class MultiLLMClient:
         self.max_tokens = int(llm_cfg.get("max_tokens", ai_cfg.get("max_tokens", legacy_cfg.get("max_tokens", 4096))))
 
         self.usage_tracker = UsageTracker()
+        self._router = LLMRouter()
+        self._custom_provider = self._router.get_provider(self.provider, model=self.model)
+
+        if self._custom_provider is not None:
+            self.model = getattr(self._custom_provider, "model", self.model)
+            return
 
         if self.provider == "openai":
             self._openai_client = OpenAI(
@@ -167,7 +176,7 @@ class MultiLLMClient:
                 api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-02-01"),
             )
             self.model = os.environ.get("AZURE_OPENAI_DEPLOYMENT", self.model)
-        elif self.provider not in {"anthropic", "gemini"}:
+        elif self.provider not in {"anthropic", "gemini", "grok"}:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
 
     def generate_json(
@@ -182,7 +191,10 @@ class MultiLLMClient:
         temp = self.temperature if temperature is None else temperature
         tok = self.max_tokens if max_tokens is None else max_tokens
 
-        if self.provider in {"openai", "deepseek"}:
+        if self._custom_provider is not None:
+            text, usage = self._call_custom_provider(system_prompt, user_prompt, temp, tok)
+            used_model = usage.get("model", self.model)
+        elif self.provider in {"openai", "deepseek"}:
             text, usage = self._call_openai(system_prompt, user_prompt, temp, tok)
             used_model = usage.get("model", self.model)
         elif self.provider == "azure_openai":
@@ -206,6 +218,14 @@ class MultiLLMClient:
 
     def usage_summary(self) -> dict[str, Any]:
         return self.usage_tracker.summary()
+
+    def _call_custom_provider(self, system_prompt: str, user_prompt: str, temperature: float, max_tokens: int) -> tuple[str, dict[str, Any]]:
+        return self._custom_provider.create_json_completion(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
 
     def _call_openai(self, system_prompt: str, user_prompt: str, temperature: float, max_tokens: int) -> tuple[str, dict[str, Any]]:
         resp = self._openai_client.chat.completions.create(

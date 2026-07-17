@@ -11,7 +11,7 @@ template:
 
 # ── Azure OpenAI ─────────────────────────────────────────────────────────────
 ai:
-  # Supported providers: openai | anthropic | deepseek | gemini
+  # Supported providers: openai | anthropic | deepseek | gemini | grok
   # Legacy compatibility: azure_openai
   provider: "openai"
   model: "gpt-4o-mini"
