@@ -114,3 +114,21 @@ def test_orphan_script_in_section_warns(tmp_path):
     v = _make_validator(tmp_path)
     report = v.validate(p, SAMPLE_TRIP)
     assert any("script" in w.lower() for w in report["warnings"])
+
+
+def test_nested_drive_descriptions_json_parses(tmp_path):
+    nested = {
+        DRIVE_KEY: {
+            "title": "Zion Canyon Scenic Drive",
+            "description": "Contains nested JSON-like blocks",
+            "meta": {"season": "fall", "difficulty": {"level": "easy"}},
+        }
+    }
+    html = VALID_HTML.replace(
+        json.dumps({DRIVE_KEY: {"title": "Zion Canyon Scenic Drive"}}),
+        json.dumps(nested),
+    )
+    p = _write_html(tmp_path, html)
+    v = _make_validator(tmp_path)
+    report = v.validate(p, SAMPLE_TRIP)
+    assert report["valid"] is True

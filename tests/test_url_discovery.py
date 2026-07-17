@@ -77,11 +77,11 @@ def test_restaurant_discovery_two_pass():
 
     call_log = []
 
-    def fake_search(variants, domain_filter=None, site_hint=""):
-        call_log.append(domain_filter)
-        if domain_filter == "google.com/maps":
+    def fake_search(variants, site_filter=None, site_hint=""):
+        call_log.append(site_filter)
+        if site_filter == "google.com/maps":
             return None  # First pass fails
-        if domain_filter == "tripadvisor.com":
+        if site_filter == "tripadvisor.com":
             return "https://www.tripadvisor.com/Restaurant_Test"
         return None
 

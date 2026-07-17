@@ -34,12 +34,14 @@ destinations:
   - id: test
     name: "Test Destination"
     dates: "Jan 1–3, 2026"
-    planning_links: []
+    planning_links:
+      - label: "Notes"
+        url: "https://example.com"
     seeds:
       - "https://alltrails.com/trail/test"
 """
     f = tmp_path / "bad_manifest.yaml"
-    f.write_text(manifest_content)
+    f.write_text(manifest_content, encoding="utf-8")
     parser = ManifestParser()
     with pytest.raises(ValueError, match="URL"):
         parser.load(str(f))
@@ -55,14 +57,18 @@ destinations:
   - id: dup
     name: "Destination A"
     dates: "Jan 1–2, 2026"
-    planning_links: []
+    planning_links:
+      - label: "Notes"
+        url: "https://example.com/a"
   - id: dup
     name: "Destination B"
     dates: "Jan 3–4, 2026"
-    planning_links: []
+    planning_links:
+      - label: "Notes"
+        url: "https://example.com/b"
 """
     f = tmp_path / "dup_manifest.yaml"
-    f.write_text(manifest_content)
+    f.write_text(manifest_content, encoding="utf-8")
     parser = ManifestParser()
     with pytest.raises(ValueError, match="duplicate"):
         parser.load(str(f))
@@ -76,7 +82,33 @@ trip:
 destinations: []
 """
     f = tmp_path / "missing_field.yaml"
-    f.write_text(manifest_content)
+    f.write_text(manifest_content, encoding="utf-8")
     parser = ManifestParser()
     with pytest.raises(Exception):
         parser.load(str(f))
+
+
+def test_trip_llm_override_schema_valid(tmp_path):
+    manifest_content = """
+trip:
+  title: "LLM Test"
+  subtitle: "Schema"
+  theme_color: "#123456"
+  llm:
+    provider: "anthropic"
+    model: "claude-3-5-sonnet-latest"
+    temperature: 0.4
+    max_tokens: 2048
+destinations:
+  - id: test
+    name: "Test Destination"
+    dates: "Jan 1–3, 2026"
+    planning_links:
+      - label: "Notes"
+        url: "https://example.com"
+"""
+    f = tmp_path / "llm_manifest.yaml"
+    f.write_text(manifest_content, encoding="utf-8")
+    parser = ManifestParser()
+    trip = parser.load(str(f))
+    assert trip["trip"]["llm"]["provider"] == "anthropic"
