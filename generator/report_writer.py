@@ -6,7 +6,7 @@ import datetime, json
 from pathlib import Path
 from typing import Any
 
-GENERATOR_VERSION = "1.0.0"
+from generator import __version__, __template_version__
 
 
 class ReportWriter:
@@ -15,13 +15,24 @@ class ReportWriter:
         self._output_dir.mkdir(parents=True, exist_ok=True)
 
     def write(self, report: dict[str, Any]) -> Path:
+        meta = report.get("meta", {})
+        llm_usage = report.get("llm_usage", {})
         out = {
-            "generator_version": GENERATOR_VERSION,
+            "generator_version": meta.get("generator_version", __version__),
+            "template_version": meta.get("template_version", __template_version__),
+            "generated_at_utc": meta.get("generated_at_utc", ""),
             "timestamp_utc": datetime.datetime.utcnow().isoformat() + "Z",
             "summary": {
                 "valid": report.get("valid", False),
                 "error_count": report.get("error_count", 0),
                 "warning_count": report.get("warning_count", 0),
+            },
+            "llm": {
+                "provider": meta.get("llm", {}).get("provider", ""),
+                "model": meta.get("llm", {}).get("model", ""),
+                "models": llm_usage.get("models", []),
+                "total_calls": llm_usage.get("total_calls", 0),
+                "total_estimated_cost_usd": llm_usage.get("total_estimated_cost_usd", 0.0),
             },
             "errors": report.get("errors", []),
             "warnings": report.get("warnings", []),

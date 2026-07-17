@@ -1,32 +1,31 @@
 """
-ai_content.py — Azure OpenAI content generation.
+ai_content.py — Multi-provider LLM content generation.
 
 CRITICAL: AI must NEVER generate URLs. This module produces names,
 descriptions, schedules, and structured content only. All URLs are
 discovered separately by url_discovery.py after this stage completes.
 """
 from __future__ import annotations
-import json, logging, os
+import logging
 from pathlib import Path
 from typing import Any
-from openai import AzureOpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
+from generator.llm_client import MultiLLMClient
 
 logger = logging.getLogger(__name__)
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 
 
 class AIContentGenerator:
-    def __init__(self, config_path: Path | str = "config.yaml") -> None:
+    def __init__(
+        self,
+        config_path: Path | str = "config.yaml",
+        llm_client: MultiLLMClient | None = None,
+    ) -> None:
         import yaml
         with Path(config_path).open() as f:
             self._config = yaml.safe_load(f)
-        self._client = AzureOpenAI(
-            azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-            api_key=os.environ["AZURE_OPENAI_API_KEY"],
-            api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-02-01"),
-        )
-        self._deployment = os.environ["AZURE_OPENAI_DEPLOYMENT"]
+        self._llm = llm_client or MultiLLMClient(config_path)
         self._system_prompt = (PROMPTS_DIR / "system_prompt.txt").read_text(encoding="utf-8")
         self._dest_template = (PROMPTS_DIR / "destination_content.txt").read_text(encoding="utf-8")
         self._drives_template = (PROMPTS_DIR / "scenic_drives.txt").read_text(encoding="utf-8")
@@ -45,6 +44,10 @@ class AIContentGenerator:
             logger.info("Generating scenic drives for '%s'…", dest["name"])
             dest["scenic_drives"] = self._generate_drives(dest)
 
+    def generate_all(self, trip: dict[str, Any]) -> None:
+        self.generate_destination_content(trip)
+        self.generate_scenic_drive_descriptions(trip)
+
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, min=2, max=30))
     def _generate_for_destination(
         self, dest: dict[str, Any], trip_meta: dict[str, Any], prev: str
@@ -57,21 +60,16 @@ class AIContentGenerator:
             previous_destination=prev,
             seeds="\n  ".join(f"- {s}" for s in seeds) if seeds else "  (none — generate full recommendations)",
         )
-        resp = self._client.chat.completions.create(
-            model=self._deployment,
-            messages=[
-                {"role": "system", "content": self._system_prompt},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=self._config["azure_openai"]["temperature"],
-            max_tokens=self._config["azure_openai"]["max_tokens"],
-            response_format={"type": "json_object"},
+        return self._llm.generate_json(
+            system_prompt=self._system_prompt,
+            user_prompt=prompt,
+            operation=f"destination_content:{dest['id']}",
+            temperature=self._config.get("ai", {}).get("temperature", self._config.get("azure_openai", {}).get("temperature", 0.7)),
+            max_tokens=self._config.get("ai", {}).get("max_tokens", self._config.get("azure_openai", {}).get("max_tokens", 4096)),
         )
-        return json.loads(resp.choices[0].message.content)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, min=2, max=30))
     def _generate_drives(self, dest: dict[str, Any]) -> list[dict[str, Any]]:
-        import re
         # Derive region from destination name
         region_map = {"utah": "Utah", "colorado": "Colorado", "new mexico": "New Mexico",
                       "arizona": "Arizona", "nevada": "Nevada", "california": "California"}
@@ -83,15 +81,11 @@ class AIContentGenerator:
             dates=dest["dates"],
             region=region,
         )
-        resp = self._client.chat.completions.create(
-            model=self._deployment,
-            messages=[
-                {"role": "system", "content": self._system_prompt},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=self._config["azure_openai"]["temperature"],
+        data = self._llm.generate_json(
+            system_prompt=self._system_prompt,
+            user_prompt=prompt,
+            operation=f"scenic_drives:{dest['id']}",
+            temperature=self._config.get("ai", {}).get("temperature", self._config.get("azure_openai", {}).get("temperature", 0.7)),
             max_tokens=2048,
-            response_format={"type": "json_object"},
         )
-        data = json.loads(resp.choices[0].message.content)
         return data.get("scenic_drives", [])

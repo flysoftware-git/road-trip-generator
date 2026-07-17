@@ -11,6 +11,7 @@ IMPORTANT: Uses Python string assembly — no Jinja2, no DOM parsing.
 Template placeholders use the pattern <!--PLACEHOLDER_NAME-->.
 """
 from __future__ import annotations
+import html as html_escape
 import hashlib, json, logging
 from pathlib import Path
 from typing import Any
@@ -47,6 +48,15 @@ class HTMLAssembler:
         logger.info("Template checksum verified ✓")
 
         html = template_text
+        meta = trip.get("_meta", {})
+        stamp = (
+            f"<!-- generator_version={meta.get('generator_version', '')}; "
+            f"template_version={meta.get('template_version', '')}; "
+            f"provider={meta.get('llm', {}).get('provider', '')}; "
+            f"model={meta.get('llm', {}).get('model', '')}; "
+            f"generated_at={meta.get('generated_at_utc', '')} -->\n"
+        )
+        html = stamp + html
 
         # ── Trip-level substitutions ─────────────────────────────────────────
         meta = trip["trip"]
@@ -68,7 +78,7 @@ class HTMLAssembler:
         # ── Per-destination sections ─────────────────────────────────────────
         sections_html = ""
         for dest in trip.get("destinations", []):
-            sections_html += self._build_single_section(dest)
+            sections_html += self._build_single_section(dest, meta)
         html = html.replace("<!--DESTINATION_SECTIONS-->", sections_html)
 
         # ── var DRIVE_DESCRIPTIONS (NOT const — required by validator) ───────
@@ -116,7 +126,7 @@ class HTMLAssembler:
             )
         return "\n    ".join(tabs)
 
-    def _build_single_section(self, dest: dict[str, Any]) -> str:
+    def _build_single_section(self, dest: dict[str, Any], trip_meta: dict[str, Any]) -> str:
         ai = dest.get("ai_content", {})
         images = dest.get("images", [])
         planning_links = dest.get("planning_links", [])
@@ -151,6 +161,9 @@ class HTMLAssembler:
 
         # Planning links
         section += self._build_planning_links(planning_links, dest.get("nps_park_code"), dest)
+
+        # Collapsible debug block
+        section += self._build_debug_block(dest, trip_meta)
 
         section += "</section>\n"
         return section
@@ -215,13 +228,16 @@ class HTMLAssembler:
             dur = attr.get("duration", "")
             must = " ⭐" if attr.get("must_see") else ""
             note = attr.get("practical_note", "")
+            diff_html = f'<span class="badge diff-badge">{diff}</span>' if diff else ""
+            dur_html = f'<span class="badge dur-badge">{dur}</span>' if dur else ""
+            note_html = f'<span class="practical-note">{note}</span>' if note else ""
             html += (
                 f'  <li class="attr-item">'
                 f'<span class="attr-name">{name_html}{must}</span>'
-                f'{"<span class=\"badge diff-badge\">" + diff + "</span>" if diff else ""}'
-                f'{"<span class=\"badge dur-badge\">" + dur + "</span>" if dur else ""}'
+                f'{diff_html}'
+                f'{dur_html}'
                 f'<span class="attr-desc">{attr.get("description", "")}</span>'
-                f'{"<span class=\"practical-note\">" + note + "</span>" if note else ""}'
+                f'{note_html}'
                 f'</li>\n'
             )
         html += '</ul>\n</div>\n'
@@ -293,11 +309,13 @@ class HTMLAssembler:
             price = rest.get("price", "")
             cuisine = rest.get("cuisine", "")
             desc = rest.get("description", "")
+            price_html = f'<span class="badge price-badge">{price}</span>' if price else ""
+            cuisine_html = f'<span class="cuisine-tag">{cuisine}</span>' if cuisine else ""
             html += (
                 f'  <li class="rest-item">'
                 f'<span class="rest-name">{name_html}</span>'
-                f'{"<span class=\"badge price-badge\">" + price + "</span>" if price else ""}'
-                f'{"<span class=\"cuisine-tag\">" + cuisine + "</span>" if cuisine else ""}'
+                f'{price_html}'
+                f'{cuisine_html}'
                 f'<span class="rest-desc">{desc}</span>'
                 f'</li>\n'
             )
@@ -340,3 +358,29 @@ class HTMLAssembler:
                     "url": drive.get("url", ""),
                 }
         return result
+
+    def _build_debug_block(self, dest: dict[str, Any], trip_meta: dict[str, Any]) -> str:
+        debug_payload = {
+            "destination_id": dest.get("id", ""),
+            "destination_name": dest.get("name", ""),
+            "coordinates": {"lat": dest.get("lat"), "lng": dest.get("lng")},
+            "nps_park_code": dest.get("nps_park_code"),
+            "counts": {
+                "images": len(dest.get("images", [])),
+                "attractions": len(dest.get("ai_content", {}).get("top_attractions", [])),
+                "restaurants": len(dest.get("ai_content", {}).get("dinner_recommendations", [])),
+                "drives": len(dest.get("scenic_drives", [])),
+                "events": len(dest.get("cultural_events", {}).get("events", [])),
+            },
+            "llm": {
+                "provider": trip_meta.get("llm", {}).get("provider", ""),
+                "model": trip_meta.get("llm", {}).get("model", ""),
+            },
+        }
+        payload = html_escape.escape(json.dumps(debug_payload, indent=2))
+        return (
+            '<details class="debug-block" style="margin-top:1rem;background:#f8fafc;border:1px solid #d7dee7;padding:0.75rem;border-radius:8px;">\n'
+            '  <summary style="cursor:pointer;font-weight:600;">Debug</summary>\n'
+            f'  <pre style="margin-top:0.75rem;overflow:auto;white-space:pre-wrap;">{payload}</pre>\n'
+            '</details>\n'
+        )

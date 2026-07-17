@@ -10,25 +10,30 @@ Contains:
 from __future__ import annotations
 import datetime
 from typing import Any
+from generator import __version__
 
-GENERATOR_VERSION = "1.0.0"
 GENERATOR_URL = "https://github.com/flysoftware-git/road-trip-generator"
 
 
 class AttributionBuilder:
     def build(self, trip: dict[str, Any]) -> str:
         timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+        meta = trip.get("_meta", {})
+        llm_usage = meta.get("llm", {}).get("usage", {})
         rows = self._image_table_rows(trip)
         image_table = self._image_table(rows) if rows else "<p>No image attribution data available.</p>"
+        cost_table = self._cost_table(llm_usage)
         return (
             '<details id="attribution-block" style="margin-top:3rem;padding:1.5rem;'
             'background:#f5f5f5;border-radius:8px;font-size:0.85rem;color:#555;">\n'
             f'  <summary style="font-weight:600;cursor:pointer;font-size:1rem;">'
             f'Attribution &amp; Version Information</summary>\n'
             f'  <div style="margin-top:1rem;">\n'
-            f'    <p><strong>Generator:</strong> Road Trip Itinerary Generator v{GENERATOR_VERSION}<br>\n'
+            f'    <p><strong>Generator:</strong> Road Trip Itinerary Generator v{meta.get("generator_version", __version__)}<br>\n'
             f'    <strong>Generated:</strong> {timestamp}<br>\n'
             f'    <strong>Trip:</strong> {trip["trip"].get("title", "")}</p>\n'
+            f'    <h4 style="margin-top:1.5rem;">LLM Usage &amp; Estimated Cost</h4>\n'
+            f'    {cost_table}\n'
             f'    <h4 style="margin-top:1.5rem;">Image Credits</h4>\n'
             f'    {image_table}\n'
             f'    <h4 style="margin-top:1.5rem;">Cultural Events Disclaimer</h4>\n'
@@ -80,5 +85,40 @@ class AttributionBuilder:
                 f'<td style="padding:4px 8px;">{row["license"]}</td>'
                 f'</tr>\n'
             )
+        html += '</tbody>\n</table>\n'
+        return html
+
+    def _cost_table(self, llm_usage: dict[str, Any]) -> str:
+        models = llm_usage.get("models", [])
+        if not models:
+            return "<p>No LLM usage data available.</p>"
+
+        html = (
+            '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">\n'
+            '  <thead><tr style="background:#e0e0e0;">'
+            '<th style="padding:4px 8px;text-align:left;">Provider</th>'
+            '<th style="padding:4px 8px;text-align:left;">Model</th>'
+            '<th style="padding:4px 8px;text-align:left;">Calls</th>'
+            '<th style="padding:4px 8px;text-align:left;">Tokens</th>'
+            '<th style="padding:4px 8px;text-align:left;">Estimated Cost (USD)</th>'
+            '</tr></thead>\n<tbody>\n'
+        )
+        for i, model in enumerate(models):
+            bg = "#fafafa" if i % 2 == 0 else "#ffffff"
+            html += (
+                f'  <tr style="background:{bg};">'
+                f'<td style="padding:4px 8px;">{model.get("provider", "")}</td>'
+                f'<td style="padding:4px 8px;">{model.get("model", "")}</td>'
+                f'<td style="padding:4px 8px;">{model.get("calls", 0)}</td>'
+                f'<td style="padding:4px 8px;">{model.get("total_tokens", 0)}</td>'
+                f'<td style="padding:4px 8px;">${model.get("estimated_cost_usd", 0.0):.6f}</td>'
+                '</tr>\n'
+            )
+        html += (
+            '  <tr style="background:#f0f4f8;font-weight:600;">'
+            '<td style="padding:4px 8px;" colspan="4">Total</td>'
+            f'<td style="padding:4px 8px;">${llm_usage.get("total_estimated_cost_usd", 0.0):.6f}</td>'
+            '</tr>\n'
+        )
         html += '</tbody>\n</table>\n'
         return html

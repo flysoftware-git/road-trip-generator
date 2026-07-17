@@ -43,6 +43,8 @@ class HTMLValidator:
             "valid": len(errors) == 0,
             "error_count": len(errors),
             "warning_count": len(warnings),
+            "meta": trip.get("_meta", {}),
+            "llm_usage": trip.get("_meta", {}).get("llm", {}).get("usage", {}),
         }
         if errors:
             logger.error("Validation FAILED: %d error(s)", len(errors))
@@ -67,12 +69,12 @@ class HTMLValidator:
 
     def _check_drive_modal_keys(self, html: str, trip: dict[str, Any], errors: list[str]) -> None:
         # Extract keys from var DRIVE_DESCRIPTIONS = { ... }
-        match = re.search(r'var DRIVE_DESCRIPTIONS\s*=\s*(\{.*?\});', html, re.DOTALL)
-        if not match:
+        drive_json = self._extract_drive_descriptions_json(html)
+        if not drive_json:
             return  # Already flagged by check 1
         try:
             import json
-            dd = json.loads(match.group(1))
+            dd = json.loads(drive_json)
         except Exception:
             errors.append("DRIVE_DESCRIPTIONS is not valid JSON — cannot validate drive modal keys")
             return
@@ -87,6 +89,40 @@ class HTMLValidator:
             errors.append(f"Drive modal buttons with no DRIVE_DESCRIPTIONS entry: {sorted(orphan_modals)}")
         if missing_modals:
             errors.append(f"DRIVE_DESCRIPTIONS keys with no modal button: {sorted(missing_modals)}")
+
+    def _extract_drive_descriptions_json(self, html: str) -> str:
+        marker = "var DRIVE_DESCRIPTIONS"
+        marker_idx = html.find(marker)
+        if marker_idx == -1:
+            return ""
+
+        start = html.find("{", marker_idx)
+        if start == -1:
+            return ""
+
+        depth = 0
+        in_str = False
+        escaped = False
+        for i in range(start, len(html)):
+            ch = html[i]
+            if in_str:
+                if escaped:
+                    escaped = False
+                elif ch == "\\":
+                    escaped = True
+                elif ch == '"':
+                    in_str = False
+                continue
+
+            if ch == '"':
+                in_str = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return html[start:i + 1]
+        return ""
 
     # ── Check 3: Div balance per section ─────────────────────────────────────
 

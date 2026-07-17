@@ -106,6 +106,9 @@ The manifest is intentionally minimal. All geocoding, NPS detection, URL discove
 | `title` | ✅ | Trip title (e.g., "Southwest Road Trip") |
 | `subtitle` | ✅ | Trip subtitle (e.g., "October 2026 — Utah & Colorado") |
 | `theme_color` | ✅ | Hex color for nav, headers, map markers (e.g., `#C0623E`) |
+| `llm` | ❌ optional | Override model routing for this trip: `{provider, model, temperature, max_tokens}` |
+
+`trip.llm.provider` supports: `openai`, `anthropic`, `deepseek`, `gemini`.
 
 ### 3.2 Auto-Resolved Fields (NOT in manifest)
 

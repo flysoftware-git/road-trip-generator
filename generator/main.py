@@ -17,8 +17,10 @@ Flags:
 """
 from __future__ import annotations
 import logging, sys
+from datetime import datetime, timezone
 from pathlib import Path
 import click
+from generator import __version__, __template_version__
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +103,11 @@ def main(
 
     # ── Stage 3: AI content generation ──────────────────────────────────────
     click.echo("Stage 3/6 — AI content generation…")
+    from generator.llm_client import MultiLLMClient
     from generator.ai_content import AIContentGenerator
-    ai_gen = AIContentGenerator(config_path)
+    llm_overrides = trip.get("trip", {}).get("llm", {})
+    llm_client = MultiLLMClient(config_path, llm_overrides=llm_overrides)
+    ai_gen = AIContentGenerator(config_path, llm_client=llm_client)
     ai_gen.generate_all(trip)
     click.echo(f"  ✓ AI content generated for {len(trip['destinations'])} destination(s)")
 
@@ -110,7 +115,7 @@ def main(
     if not skip_events:
         click.echo("Stage 4/6 — Cultural events discovery…")
         from generator.cultural_events import CulturalEventsDiscoverer
-        events = CulturalEventsDiscoverer(config_path)
+        events = CulturalEventsDiscoverer(config_path, llm_client=llm_client)
         events.discover(trip)
         click.echo("  ✓ Cultural events resolved")
     else:
@@ -143,6 +148,16 @@ def main(
     click.echo("Stage 6/6 — Assembling HTML…")
     from generator.attribution_builder import AttributionBuilder
     from generator.html_assembler import HTMLAssembler
+    trip["_meta"] = {
+        "generator_version": __version__,
+        "template_version": __template_version__,
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "llm": {
+            "provider": llm_client.provider,
+            "model": llm_client.model,
+            "usage": llm_client.usage_summary(),
+        },
+    }
     attr_block = AttributionBuilder().build(trip)
     assembler = HTMLAssembler(config_path)
     html = assembler.assemble(trip, attr_block)

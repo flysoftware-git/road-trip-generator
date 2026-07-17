@@ -17,8 +17,8 @@ import json, logging, os, time
 from pathlib import Path
 from typing import Any
 import requests
-from openai import AzureOpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
+from generator.llm_client import MultiLLMClient
 
 logger = logging.getLogger(__name__)
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
@@ -26,17 +26,16 @@ BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
 
 
 class CulturalEventsDiscoverer:
-    def __init__(self, config_path: Path | str = "config.yaml") -> None:
+    def __init__(
+        self,
+        config_path: Path | str = "config.yaml",
+        llm_client: MultiLLMClient | None = None,
+    ) -> None:
         import yaml
         with Path(config_path).open() as f:
             self._config = yaml.safe_load(f)
         self._api_key = os.environ["BRAVE_SEARCH_API_KEY"]
-        self._client = AzureOpenAI(
-            azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-            api_key=os.environ["AZURE_OPENAI_API_KEY"],
-            api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-02-01"),
-        )
-        self._deployment = os.environ["AZURE_OPENAI_DEPLOYMENT"]
+        self._llm = llm_client or MultiLLMClient(config_path)
         self._template = (PROMPTS_DIR / "cultural_events.txt").read_text(encoding="utf-8")
         self._system_prompt = (PROMPTS_DIR / "system_prompt.txt").read_text(encoding="utf-8")
 
@@ -115,14 +114,10 @@ class CulturalEventsDiscoverer:
             destination_type=dest_type,
             bing_results=search_context,   # field name kept for prompt compatibility
         )
-        resp = self._client.chat.completions.create(
-            model=self._deployment,
-            messages=[
-                {"role": "system", "content": self._system_prompt},
-                {"role": "user", "content": prompt},
-            ],
+        return self._llm.generate_json(
+            system_prompt=self._system_prompt,
+            user_prompt=prompt,
+            operation=f"cultural_events:{name}",
             temperature=0.3,
             max_tokens=1500,
-            response_format={"type": "json_object"},
         )
-        return json.loads(resp.choices[0].message.content)

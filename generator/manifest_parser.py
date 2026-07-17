@@ -24,6 +24,19 @@ MANIFEST_SCHEMA: dict[str, Any] = {
                 "title": {"type": "string"},
                 "subtitle": {"type": "string"},
                 "theme_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+                "llm": {
+                    "type": "object",
+                    "properties": {
+                        "provider": {
+                            "type": "string",
+                            "enum": ["openai", "anthropic", "deepseek", "gemini", "azure_openai"],
+                        },
+                        "model": {"type": "string", "minLength": 2},
+                        "temperature": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+                        "max_tokens": {"type": "integer", "minimum": 256, "maximum": 16384},
+                    },
+                    "additionalProperties": False,
+                },
             },
         },
         "destinations": {
@@ -79,6 +92,10 @@ class ManifestParser:
         )
         return data
 
+    def load(self, manifest_path: Path | str) -> dict[str, Any]:
+        """Backward-compatible alias used by CLI/tests."""
+        return self.parse(manifest_path)
+
     def _validate_schema(self, data: dict[str, Any]) -> None:
         jsonschema.validate(instance=data, schema=MANIFEST_SCHEMA)
 
@@ -96,5 +113,5 @@ class ManifestParser:
         seen = set()
         for did in ids:
             if did in seen:
-                raise ValueError(f"Duplicate destination id: '{did}'")
+                raise ValueError(f"duplicate destination id: '{did}'")
             seen.add(did)
