@@ -8,6 +8,8 @@ Flags:
   --manifest        Path to trip manifest YAML (required)
   --output          Output directory (default: output/)
   --config          Path to config.yaml (default: config.yaml)
+    --llm-provider    Override LLM provider for this run
+    --llm-model       Override LLM model for this run
   --dry-run         Parse + validate manifest only; no AI calls, no output
   --skip-images     Skip image fetching (useful for fast content iteration)
   --skip-events     Skip cultural events discovery
@@ -38,6 +40,12 @@ def _setup_logging(verbose: bool) -> None:
 @click.option("--manifest", required=True, type=click.Path(exists=True), help="Trip manifest YAML")
 @click.option("--output", default="output", show_default=True, help="Output directory")
 @click.option("--config", "config_path", default="config.yaml", show_default=True, help="Config YAML")
+@click.option(
+    "--llm-provider",
+    type=click.Choice(["openai", "anthropic", "deepseek", "gemini", "azure_openai"], case_sensitive=False),
+    help="Override LLM provider for this run",
+)
+@click.option("--llm-model", type=str, help="Override LLM model for this run")
 @click.option("--dry-run", is_flag=True, help="Parse & validate only; no AI calls")
 @click.option("--skip-images", is_flag=True, help="Skip image fetching")
 @click.option("--skip-events", is_flag=True, help="Skip cultural events discovery")
@@ -48,6 +56,8 @@ def main(
     manifest: str,
     output: str,
     config_path: str,
+    llm_provider: str | None,
+    llm_model: str | None,
     dry_run: bool,
     skip_images: bool,
     skip_events: bool,
@@ -63,6 +73,10 @@ def main(
     click.echo(f"   Manifest : {manifest}")
     click.echo(f"   Output   : {output_dir.resolve()}")
     click.echo(f"   Config   : {config_path}")
+    if llm_provider:
+        click.echo(f"   LLM      : provider override = {llm_provider.lower()}")
+    if llm_model:
+        click.echo(f"   LLM      : model override = {llm_model}")
     if dry_run:
         click.echo("   Mode     : DRY RUN (no AI calls)")
     click.echo()
@@ -105,7 +119,11 @@ def main(
     click.echo("Stage 3/6 — AI content generation…")
     from generator.llm_client import MultiLLMClient
     from generator.ai_content import AIContentGenerator
-    llm_overrides = trip.get("trip", {}).get("llm", {})
+    llm_overrides = dict(trip.get("trip", {}).get("llm", {}))
+    if llm_provider:
+        llm_overrides["provider"] = llm_provider.lower()
+    if llm_model:
+        llm_overrides["model"] = llm_model
     llm_client = MultiLLMClient(config_path, llm_overrides=llm_overrides)
     ai_gen = AIContentGenerator(config_path, llm_client=llm_client)
     ai_gen.generate_all(trip)

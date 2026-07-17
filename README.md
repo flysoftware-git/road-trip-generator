@@ -122,6 +122,9 @@ python -m generator.main [OPTIONS]
   --manifest PATH          Trip manifest YAML (required)
   --output PATH            Output directory [default: output/]
   --config PATH            Config YAML [default: config.yaml]
+  --llm-provider [openai|anthropic|deepseek|gemini|azure_openai]
+                           Override LLM provider for this run
+  --llm-model TEXT         Override LLM model for this run
   --dry-run                Parse & validate manifest only; no AI calls
   --skip-images            Skip image fetching (faster iteration)
   --skip-events            Skip cultural events discovery
@@ -141,6 +144,12 @@ python -m generator.main --manifest trip.yaml --destination zion
 
 # Fast iteration (skip images and events)
 python -m generator.main --manifest trip.yaml --skip-images --skip-events
+
+# Test with a different provider without editing config.yaml/manifest
+python -m generator.main --manifest trip.yaml --llm-provider anthropic
+
+# Test provider+model combination from CLI
+python -m generator.main --manifest trip.yaml --llm-provider openai --llm-model gpt-4o-mini
 ```
 
 ---
