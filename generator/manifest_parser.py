@@ -28,6 +28,14 @@ MANIFEST_SCHEMA: dict[str, Any] = {
                     "type": "string",
                     "enum": ["openai", "anthropic", "deepseek", "gemini", "grok", "azure_openai"],
                 },
+                "environment": {
+                    "type": "string",
+                    "enum": ["dev", "test", "prod"],
+                    "description": "Optional environment tag for hybrid selection. "
+                                   "Priority: CLI > manifest > ENVIRONMENT env var. "
+                                   "Does not affect config.yaml unless user chooses "
+                                   "to implement environment-specific configs later."
+                },
                 "llm_features": {
                     "type": "object",
                     "properties": {

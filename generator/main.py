@@ -18,7 +18,7 @@ Flags:
   --verbose         Enable debug logging
 """
 from __future__ import annotations
-import logging, sys
+import logging, os, sys
 from datetime import datetime, timezone
 from pathlib import Path
 import click
@@ -45,6 +45,16 @@ def _setup_logging(verbose: bool) -> None:
     type=click.Choice(["openai", "anthropic", "deepseek", "gemini", "grok", "azure_openai"], case_sensitive=False),
     help="Override LLM provider for this run",
 )
+@click.option(
+    "--environment",
+    type=click.Choice(["dev", "test", "prod"], case_sensitive=False),
+    help="Environment override (dev/test/prod). Optional.",
+)
+@click.option(
+    "--env-file",
+    type=click.Path(exists=True),
+    help="Optional path to .env file. If provided, loaded before environment resolution.",
+)
 @click.option("--llm-model", type=str, help="Override LLM model for this run")
 @click.option("--dry-run", is_flag=True, help="Parse & validate only; no AI calls")
 @click.option("--skip-images", is_flag=True, help="Skip image fetching")
@@ -57,6 +67,8 @@ def main(
     output: str,
     config_path: str,
     llm_provider: str | None,
+    environment: str | None,
+    env_file: str | None,
     llm_model: str | None,
     dry_run: bool,
     skip_images: bool,
@@ -67,7 +79,6 @@ def main(
 ) -> None:
     _setup_logging(verbose)
     output_dir = Path(output)
-    output_dir.mkdir(parents=True, exist_ok=True)
 
     click.echo(f"🗺  Road Trip Itinerary Generator")
     click.echo(f"   Manifest : {manifest}")
@@ -81,11 +92,43 @@ def main(
         click.echo("   Mode     : DRY RUN (no AI calls)")
     click.echo()
 
+    # ── Optional .env loading ───────────────────────────────────────────────
+    if env_file:
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(env_file)
+            click.echo(f"   EnvFile  : loaded from {env_file}")
+        except Exception as exc:
+            click.echo(f"   EnvFile  : failed to load ({exc})", err=True)
+
     # ── Stage 1: Parse & validate manifest ──────────────────────────────────
     click.echo("Stage 1/6 — Parsing manifest…")
     from generator.parser import ManifestParser
     parser = ManifestParser()
     trip = parser.load(manifest)
+
+    # ── Hybrid environment selection ─────────────────────────────────────────
+    env_from_manifest = trip.get("trip", {}).get("environment")
+    env_from_cli = environment
+    env_from_env = os.environ.get("ENVIRONMENT")
+
+    environment_selected = (
+        (env_from_cli or env_from_manifest or env_from_env or "dev").lower()
+    )
+
+    click.echo(
+        click.style("   Env      : ", fg="cyan") +
+        click.style(environment_selected, fg="green")
+    )
+
+    # Add environment tag to logger name
+    logger.name = f"{logger.name}[{environment_selected}]"
+
+    # Environment-aware output directory
+    output_dir = Path(output) / environment_selected
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    click.echo()
 
     if destinations:
         # Filter to requested destination ids
@@ -121,14 +164,42 @@ def main(
     from generator.ai_content import AIContentGenerator
     from generator.costs import print_cost_summary, summarize_from_usage
     llm_overrides = dict(trip.get("trip", {}).get("llm", {}))
+
+    # ── Hybrid provider selection ───────────────────────────────────────────
+    provider_from_manifest = trip.get("trip", {}).get("llm_provider")
+    provider_from_cli = llm_provider
+    provider_from_env = os.environ.get("LLM_PROVIDER")
+    provider_selected = (provider_from_cli or provider_from_manifest or provider_from_env)
+
     if trip.get("trip", {}).get("llm_provider"):
         llm_overrides["provider"] = trip["trip"].get("llm_provider")
     if trip.get("trip", {}).get("llm_features"):
         llm_overrides["features"] = trip["trip"].get("llm_features")
     if llm_provider:
         llm_overrides["provider"] = llm_provider.lower()
+    elif provider_selected:
+        llm_overrides["provider"] = provider_selected.lower()
+
+    click.echo(
+        click.style("   LLM      : provider = ", fg="cyan") +
+        click.style(llm_overrides.get("provider"), fg="green")
+    )
+
     if llm_model:
         llm_overrides["model"] = llm_model
+
+    # ── Optional environment-aware config merging ───────────────────────────
+    try:
+        import yaml
+        with Path(config_path).open(encoding="utf-8") as f:
+            cfg_full = yaml.safe_load(f) or {}
+        if environment_selected in cfg_full:
+            env_cfg = cfg_full[environment_selected]
+            ai_env_cfg = env_cfg.get("ai", {})
+            for key, val in ai_env_cfg.items():
+                llm_overrides.setdefault(key, val)
+    except Exception:
+        pass
     llm_client = MultiLLMClient(config_path, llm_overrides=llm_overrides)
     ai_gen = AIContentGenerator(config_path, llm_client=llm_client)
     ai_gen.generate_all(trip)
@@ -175,6 +246,7 @@ def main(
         "generator_version": __version__,
         "template_version": __template_version__,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "environment": environment_selected,
         "llm": {
             "provider": llm_client.provider,
             "model": llm_client.model,
@@ -203,6 +275,7 @@ def main(
         manifest_path=manifest,
         predicted_usd=predicted_cost,
         actual_usd=actual_cost,
+        environment=environment_selected,
     )
 
     if not report["valid"]:

@@ -6,14 +6,21 @@ from pathlib import Path
 from typing import Any
 
 
-def print_cost_summary(*, model: str, manifest_path: str, predicted_usd: float, actual_usd: float) -> None:
-    """Print one-line standardized LLM cost summary."""
+def print_cost_summary(
+    *,
+    model: str,
+    manifest_path: str,
+    predicted_usd: float,
+    actual_usd: float,
+    environment: str = "dev",
+) -> None:
+    """Print formatted LLM cost summary."""
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     manifest_name = Path(manifest_path).name
-    print(
-        f"[LLM-COST] {ts} | {model} | {manifest_name} | "
-        f"predicted={predicted_usd:.6f} | actual={actual_usd:.6f}"
-    )
+    print(f"[LLM-COST] {ts} | {model} | {manifest_name}")
+    print(f"  Predicted USD : ${predicted_usd:.4f}")
+    print(f"  Actual USD    : ${actual_usd:.4f}")
+    print(f"  Environment   : {environment}")
 
 
 def summarize_from_usage(usage: dict[str, Any]) -> tuple[float, float]:

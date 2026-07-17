@@ -64,6 +64,10 @@ class HTMLAssembler:
         html = html.replace("<!--TRIP_SUBTITLE-->", meta["subtitle"])
         html = html.replace("<!--THEME_COLOR-->", meta.get("theme_color", "#C0623E"))
 
+        # NEW: environment metadata
+        if "environment" in trip.get("_meta", {}):
+            html = html.replace("{{environment}}", trip["_meta"]["environment"])
+
         # ── Google Maps overview link ────────────────────────────────────────
         gmaps_url = self._build_google_maps_url(trip["destinations"])
         html = html.replace("<!--GOOGLE_MAPS_URL-->", gmaps_url)

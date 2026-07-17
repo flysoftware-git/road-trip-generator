@@ -6,8 +6,11 @@ if "%1"=="" (
     exit /b
 )
 
+REM Path to your repo root
+set REPO_ROOT=C:\Dev\Sandbox\ROAD-TRIP-GENERATOR
+
 REM Activate venv
-call C:\dev\road-trip-runtime\road-trip-generator\venv\Scripts\activate.bat
+call %REPO_ROOT%\venv\Scripts\activate.bat
 
 REM Output root
 set OUTPUT_ROOT=C:\Users\bryan\OneDrive\RoadTripOutput
@@ -21,6 +24,9 @@ if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
 
 REM Version stamp
 echo Run date: %DATE% %TIME% > "%OUTPUT_DIR%\version.txt"
+
+REM Move into repo root so Python can find the generator package
+cd /d %REPO_ROOT%
 
 REM Manifest naming convention: <program>_manifest.yaml
 python -m generator.main --manifest "%PROGRAM%_manifest.yaml" --output "%OUTPUT_DIR%"
