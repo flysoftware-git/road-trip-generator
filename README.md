@@ -14,42 +14,70 @@ Write a manifest in minutes. Get a polished, deployable trip guide with:
 
 ## Quick Start
 
-### 1. Clone and install
+### 1. Clone
 
 ```bash
 git clone https://github.com/flysoftware-git/road-trip-generator.git
 cd road-trip-generator
-pip install -r requirements.txt
 ```
 
-### 2. Set up environment variables
+### 2. Bootstrap environment (Windows)
 
-```bash
-cp .env.example .env
-# Edit .env with your API keys
+PowerShell:
+
+```powershell
+.\scripts\bootstrap.ps1
 ```
+
+Batch wrapper:
+
+```bat
+scripts\bootstrap.bat
+```
+
+Optional flags:
+
+```powershell
+# Rebuild venv from scratch
+.\scripts\bootstrap.ps1 -Recreate
+
+# Skip tests during setup
+.\scripts\bootstrap.ps1 -SkipTests
+```
+
+### 3. Set up environment variables
+
+`scripts/bootstrap.ps1` auto-creates `.env` from `.env.example` if missing.
+Then edit `.env` with your API keys.
 
 Required variables:
 | Variable | Description |
 |---|---|
-| `AZURE_OPENAI_ENDPOINT` | Your Azure OpenAI resource URL |
-| `AZURE_OPENAI_API_KEY` | Your Azure OpenAI API key |
-| `AZURE_OPENAI_DEPLOYMENT` | Your model deployment name (e.g., `gpt-4o`) |
-| `BING_SEARCH_API_KEY` | Bing Web Search API key |
+| `OPENAI_API_KEY` | OpenAI API key (when `ai.provider: openai`) |
+| `ANTHROPIC_API_KEY` | Anthropic API key (when `ai.provider: anthropic`) |
+| `DEEPSEEK_API_KEY` | DeepSeek API key (when `ai.provider: deepseek`) |
+| `GEMINI_API_KEY` | Gemini API key (when `ai.provider: gemini`) |
+| `BRAVE_SEARCH_API_KEY` | Brave Web Search API key |
 
 Optional:
 | Variable | Description |
 |---|---|
 | `NPS_API_KEY` | NPS API key (defaults to `DEMO_KEY`, which is rate-limited) |
-| `AZURE_OPENAI_API_VERSION` | API version (default: `2024-02-01`) |
+| `OPENAI_MODEL` | Default OpenAI model override (e.g. `gpt-4o-mini`) |
+| `AZURE_OPENAI_*` | Legacy Azure OpenAI compatibility variables |
 
-### 3. Write your manifest
+### 4. Write your manifest
 
 ```yaml
 trip:
   title: "Pacific Coast Highway"
   subtitle: "September 2026 — California"
   theme_color: "#2E6B8A"
+  llm:
+    provider: "openai"
+    model: "gpt-4o-mini"
+    temperature: 0.6
+    max_tokens: 4096
 
 destinations:
   - id: sf
@@ -76,7 +104,7 @@ destinations:
 
 Seeds are **name hints only** — attractions, hikes, or experiences you specifically want included. The AI discovers scenic drives, cultural events, and restaurants independently.
 
-### 4. Generate
+### 5. Generate
 
 ```bash
 python -m generator.main --manifest trip_manifest.yaml --output output/
@@ -173,9 +201,8 @@ See [docs/requirements.md](docs/requirements.md) for the full v0.5 requirements 
 
 ## Testing
 
-```bash
-pip install pytest
-pytest tests/ -v
+```powershell
+.\venv\Scripts\python.exe -m pytest tests -v
 ```
 
 Test fixtures in `tests/fixtures/` include sample manifests, AI outputs, Bing results, and NPS API responses for offline testing.
@@ -234,6 +261,30 @@ output/
 ## Example Manifest (Southwest Road Trip)
 
 `trip_manifest.yaml` in the project root is the reverse-engineered manifest for the Southwest Road Trip v2.5 (Zion → Bryce → Capitol Reef → Moab → Telluride → Pagosa Springs → Santa Fe). Use it for testing and comparing generator output against the hand-crafted v2.5 reference.
+
+---
+
+## Nested Folder Cleanup (Windows)
+
+If you accidentally extracted or cloned the repo into itself (for example `road-trip-generator/road-trip-generator`), keep one canonical root and remove the duplicate copy.
+
+Safe process:
+
+```powershell
+# 1) See current status
+git status --short
+
+# 2) Compare duplicate folder contents (optional)
+Get-ChildItem .\road-trip-generator -Recurse | Select-Object FullName
+
+# 3) Remove accidental nested copy if not needed
+Remove-Item -Recurse -Force .\road-trip-generator
+
+# 4) Verify tree is clean
+git status --short
+```
+
+If the nested folder has unique files you need, move them into the root before deletion.
 
 ---
 
