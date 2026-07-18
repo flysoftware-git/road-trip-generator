@@ -152,7 +152,7 @@ def main(
     geo = Geocoder()
     nps = NPSResolver()
     for dest in trip["destinations"]:
-        lat, lng = geo.geocode(dest["name"])
+        lat, lng = geo._geocode(dest["name"])
         dest["lat"] = lat
         dest["lng"] = lng
         dest["nps_park_code"] = nps.resolve(dest["name"])

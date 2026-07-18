@@ -16,6 +16,7 @@ NPS_KEYWORDS = [
 
 
 class NPSResolver:
+    
     def __init__(self) -> None:
         self.api_key = os.environ.get("NPS_API_KEY", "DEMO_KEY")
         self.session = requests.Session()
@@ -52,3 +53,8 @@ class NPSResolver:
         except requests.RequestException as exc:
             logger.warning("NPS API error for '%s': %s", name, exc)
         return None
+def resolve(self, name: str) -> str | None:
+    """Public wrapper for park code resolution."""
+    if self._looks_like_nps(name):
+        return self._resolve_park_code(name)
+    return None
