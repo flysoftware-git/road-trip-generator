@@ -20,6 +20,36 @@ logger = logging.getLogger(__name__)
 TEMPLATE_PATH = Path(__file__).parent.parent / "templates" / "v2.5_template.html"
 CHECKSUM_PATH = Path(__file__).parent.parent / "templates" / "checksums.txt"
 
+def sanitize_dest_id(name: str) -> str:
+    """
+    Convert destination names into validator-friendly IDs.
+    Examples:
+      'Zion National Park' → 'zion'
+      'Bryce Canyon National Park' → 'bryce'
+      'Capitol Reef National Park' → 'capitolreef'
+      'Pagosa Springs' → 'pagosa'
+      'Santa Fe' → 'santafe'
+    """
+    name = name.lower()
+    for remove in ["national park", "state park", "park", ","]:
+        name = name.replace(remove, "")
+    name = name.replace("-", " ")
+    name = "".join(ch for ch in name if ch.isalnum() or ch == " ")
+    return "".join(name.split())
+    
+
+def sanitize_drive_key(title: str) -> str:
+    """
+    Convert scenic drive titles into validator-friendly keys.
+    Examples:
+      'Zion Canyon Scenic Drive' → 'zion_canyon_scenic_drive'
+      'Free Gondola to Mountain Village' → 'free_gondola_to_mountain_village'
+    """
+    title = title.lower()
+    title = title.replace("/", " ")
+    title = "".join(ch for ch in title if ch.isalnum() or ch == " ")
+    return "_".join(title.split())
+
 
 def _verify_checksum(template_text: str) -> None:
     """Hard fail if template SHA-256 doesn't match stored value."""
@@ -37,6 +67,35 @@ def _verify_checksum(template_text: str) -> None:
 
 
 class HTMLAssembler:
+    def sanitize_dest_id(self, name: str) -> str:
+        """
+        Convert destination names into validator-friendly IDs.
+        Examples:
+          'Zion National Park' → 'zion'
+          'Bryce Canyon National Park' → 'bryce'
+          'Capitol Reef National Park' → 'capitolreef'
+          'Pagosa Springs' → 'pagosa'
+          'Santa Fe' → 'santafe'
+        """
+        name = name.lower()
+        for remove in ["national park", "state park", "park", ","]:
+            name = name.replace(remove, "")
+        name = name.replace("-", " ")
+        name = "".join(ch for ch in name if ch.isalnum() or ch == " ")
+        return "".join(name.split())
+
+    def sanitize_drive_key(self, title: str) -> str:
+        """
+        Convert scenic drive titles into validator-friendly keys.
+        Examples:
+          'Zion Canyon Scenic Drive' → 'zion_canyon_scenic_drive'
+          'Free Gondola to Mountain Village' → 'free_gondola_to_mountain_village'
+        """
+        title = title.lower()
+        title = title.replace("/", " ")
+        title = "".join(ch for ch in title if ch.isalnum() or ch == " ")
+        return "_".join(title.split())
+
     def __init__(self, config_path: Path | str = "config.yaml") -> None:
         import yaml
         with Path(config_path).open() as f:
@@ -126,7 +185,7 @@ class HTMLAssembler:
             active = ' class="active"' if i == 0 else ""
             short_name = dest["name"].split(" National")[0].split(",")[0].strip()
             tabs.append(
-                f'<button data-dest="{dest["id"]}"{active}>{short_name}</button>'
+                f'<button data-dest="{sanitize_dest_id(dest["name"])}"{active}>{short_name}</button>'
             )
         return "\n    ".join(tabs)
 
@@ -137,7 +196,8 @@ class HTMLAssembler:
         events = dest.get("cultural_events", {})
         drives = dest.get("scenic_drives", [])
 
-        section = f'<section id="{dest["id"]}" class="destination-section">\n'
+        section_id = sanitize_dest_id(dest["name"])
+        section = f'<section id="{section_id}" class="destination-section">\n'  
 
         # Header
         section += self._build_header(dest, ai, images)
@@ -262,7 +322,7 @@ class HTMLAssembler:
             return ""
         html = '<div class="card drives-card">\n<h3>Scenic Drives &amp; Viewpoints</h3>\n<div class="drive-buttons">\n'
         for drive in drives:
-            key = drive.get("title", "").replace(" ", "_").replace("/", "_")
+            key = sanitize_drive_key(drive.get("title", ""))
             html += (
                 f'  <button class="drive-btn" data-drive-key="{key}" '
                 f'onclick="showDriveModal(\'{key}\')">{drive.get("title", "")}</button>\n'
@@ -351,7 +411,7 @@ class HTMLAssembler:
         result: dict[str, Any] = {}
         for dest in destinations:
             for drive in dest.get("scenic_drives", []):
-                key = drive.get("title", "").replace(" ", "_").replace("/", "_")
+                key = sanitize_drive_key(drive.get("title", ""))
                 result[key] = {
                     "title": drive.get("title", ""),
                     "category": drive.get("category", "scenic_drive"),
