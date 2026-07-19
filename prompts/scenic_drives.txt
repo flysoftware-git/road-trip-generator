@@ -26,9 +26,9 @@ Exclude: hiking trails (those belong in top_attractions), routine park
 Return a JSON object with EXACTLY this structure:
 ════════════════════════════════════════════════════════
 
-{
+{{
   "scenic_drives": [
-    {
+    {{
       "title": "Official or common name of the drive, viewpoint, or aerial
         experience. This becomes the JavaScript object key and the popup
         button label — must be unique within the destination. Keep under
@@ -66,9 +66,9 @@ Return a JSON object with EXACTLY this structure:
 
       "vehicle_requirement": "Any vehicle | High-clearance recommended |
         4WD required | Paved — any vehicle | Gondola (no vehicle needed)"
-    }
+    }}
   ]
-}
+}}
 
 ════════════════════════════════════════════════════════
 QUANTITY AND QUALITY RULES

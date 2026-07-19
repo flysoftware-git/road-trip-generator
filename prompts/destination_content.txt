@@ -13,8 +13,8 @@ Return a JSON object with EXACTLY this structure.
 All string values follow the voice and style rules in the system prompt.
 ════════════════════════════════════════════════════════
 
-{
-  "expected_environment": {
+{{
+  "expected_environment": {{
     "summary": "Lead with the single most distinctive seasonal observation for
       this destination in this travel month — a visual, sensory, or atmospheric
       detail that is specific to NOW rather than generic to the destination.
@@ -26,9 +26,9 @@ All string values follow the voice and style rules in the system prompt.
     "temperature_high_f": 72,
     "temperature_low_f": 38,
     "what_to_pack": ["item1", "item2", "item3", "item4"]
-  },
+  }},
 
-  "getting_here": {
+  "getting_here": {{
     "drive_time": "e.g. 2 hrs 15 min",
     "distance_miles": 95,
     "route_summary": "Name the specific highways in order. Note any scenic or
@@ -36,19 +36,19 @@ All string values follow the voice and style rules in the system prompt.
       crossing, a dramatic final approach. Include a parking or arrival note
       if relevant. 2–3 sentences.",
     "en_route_stops": [
-      {
+      {{
         "name": "Real, named stop — town, state park, overlook, or roadside attraction",
         "highway_reference": "e.g. US-89 N near mile 210 | UT-12 between Escalante and Boulder",
         "description": "One sentence: what it is and why it earns a stop. Be
           specific — name the waterfall height, the pie, the trail distance,
           the geological feature. Give a reason, not just a label.",
         "time_required": "e.g. 20-min pull-out | allow 2 hrs | worth a full hour"
-      }
+      }}
     ]
-  },
+  }},
 
   "top_attractions": [
-    {
+    {{
       "name": "Real attraction, trail, or landmark name",
       "type": "hike | attraction | viewpoint | activity | landmark",
       "difficulty": "Easy | Moderate | Strenuous | N/A",
@@ -65,10 +65,10 @@ All string values follow the voice and style rules in the system prompt.
         high clearance vehicle needed, etc. Omit this field if no critical
         logistics apply.",
       "link_type": "hike | attraction"
-    }
+    }}
   ],
 
-  "possible_daily_schedule": {
+  "possible_daily_schedule": {{
     "morning": "Name specific locations with realistic clock times, e.g.
       '7:00am — start Angels Landing before heat and crowds build; chains
       section typically has 15-min waits by 9am'. Explain the pacing logic,
@@ -77,10 +77,10 @@ All string values follow the voice and style rules in the system prompt.
       Include drive times between sites where relevant. Name the roads.",
     "evening": "Wind-down activity, sunset viewpoint, or dinner transition.
       Note sunset time for the month if relevant to the activity choice."
-  },
+  }},
 
   "dinner_recommendations": [
-    {
+    {{
       "name": "Real restaurant name",
       "cuisine": "e.g. Southwestern | New Mexican | Contemporary American | Thai | Italian | Brewery | Steakhouse",
       "price_range": "$ | $$ | $$$ | $$$$",
@@ -88,9 +88,9 @@ All string values follow the voice and style rules in the system prompt.
         signature style. Add one setting or atmosphere detail. Add a reservation
         or access note if warranted. No superlatives — let specifics carry it.",
       "link_type": "restaurant"
-    }
+    }}
   ]
-}
+}}
 
 ════════════════════════════════════════════════════════
 QUANTITY AND DIVERSITY RULES — read carefully

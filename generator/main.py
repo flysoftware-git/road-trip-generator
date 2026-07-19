@@ -17,6 +17,7 @@ Flags:
   --destination     Process only this destination id (repeatable)
   --verbose         Enable debug logging
 """
+
 from __future__ import annotations
 import logging, os, sys
 from datetime import datetime, timezone
@@ -84,6 +85,7 @@ def main(
     click.echo(f"   Manifest : {manifest}")
     click.echo(f"   Output   : {output_dir.resolve()}")
     click.echo(f"   Config   : {config_path}")
+
     if llm_provider:
         click.echo(f"   LLM      : provider override = {llm_provider.lower()}")
     if llm_model:
@@ -98,6 +100,7 @@ def main(
             from dotenv import load_dotenv
             load_dotenv(env_file)
             click.echo(f"   EnvFile  : loaded from {env_file}")
+            click.echo(f"DEBUG: OPENAI_API_KEY after dotenv = {os.environ.get('OPENAI_API_KEY')}")
         except Exception as exc:
             click.echo(f"   EnvFile  : failed to load ({exc})", err=True)
 
@@ -200,7 +203,11 @@ def main(
                 llm_overrides.setdefault(key, val)
     except Exception:
         pass
-    llm_client = MultiLLMClient(config_path, llm_overrides=llm_overrides)
+    llm_client = MultiLLMClient(
+        config_path=config_path,
+        llm_overrides=llm_overrides,
+    )
+
     ai_gen = AIContentGenerator(config_path, llm_client=llm_client)
     ai_gen.generate_all(trip)
     click.echo(f"  ✓ AI content generated for {len(trip['destinations'])} destination(s)")

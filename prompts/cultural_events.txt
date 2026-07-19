@@ -43,10 +43,10 @@ Do not treat:
 FORMAT A — Events found (count >= 2)
 ════════════════════════════════════════════════════════
 
-{
+{{
   "has_events": true,
   "events": [
-    {
+    {{
       "name": "Full official event name exactly as it appears in search results",
       "venue": "Venue name — include city if different from destination name",
       "venue_address": "Street address only if present verbatim in search results — omit field otherwise",
@@ -60,19 +60,19 @@ FORMAT A — Events found (count >= 2)
       "url": "URL verbatim from search results only. Do NOT construct, modify,
         or guess URLs. Omit this field entirely if no URL appears in the results.",
       "source_domain": "e.g. visitsantafe.com | nmphilharmonic.org"
-    }
+    }}
   ],
   "ambient_scene": "1–2 sentences on the ongoing cultural character of this
     destination regardless of specific ticketed events — recurring gallery scene,
     live music venues, Saturday markets, public art walks, etc. Gives context
     for unstructured time."
-}
+}}
 
 ════════════════════════════════════════════════════════
 FORMAT B — Honest fallback (count < 2)
 ════════════════════════════════════════════════════════
 
-{
+{{
   "has_events": false,
   "honest_assessment": "2–3 sentences describing what the cultural scene
     actually IS for this destination type in this month.
@@ -94,7 +94,7 @@ FORMAT B — Honest fallback (count < 2)
     venue with a reliable music schedule, a free NPS evening program, a
     Saturday market. Give name and a brief access note. Omit this field if
     nothing can be stated with confidence."
-}
+}}
 
 ════════════════════════════════════════════════════════
 QUALITY RULES for FORMAT A

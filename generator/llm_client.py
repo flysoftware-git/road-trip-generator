@@ -6,7 +6,7 @@ Supported providers:
   - anthropic
   - deepseek (OpenAI-compatible)
   - gemini
-    - grok (OpenAI-compatible)
+  - grok (OpenAI-compatible)
   - azure_openai (legacy compatibility)
 """
 from __future__ import annotations
@@ -178,6 +178,10 @@ class MultiLLMClient:
             self.model = os.environ.get("AZURE_OPENAI_DEPLOYMENT", self.model)
         elif self.provider not in {"anthropic", "gemini", "grok"}:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
+        elif self.provider == "grok":
+            from generator.providers.grok import GrokClient
+            self._client = GrokClient(os.environ["GROK_API_KEY"], self.model)
+
 
     def generate_json(
         self,

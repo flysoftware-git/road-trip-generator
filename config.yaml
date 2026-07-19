@@ -54,6 +54,7 @@ wikimedia:
 
 # ── Image acquisition ─────────────────────────────────────────────────────────
 images:
+  provider_priority: ["nps", "unsplash", "wikimedia"]
   per_destination: 3
   min_per_destination: 2
   max_per_destination: 4

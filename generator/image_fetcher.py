@@ -15,7 +15,9 @@ import hashlib, logging, mimetypes, os, time
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+from openai import images
 import requests
+import urllib.parse
 
 logger = logging.getLogger(__name__)
 NPS_API_BASE = "https://developer.nps.gov/api/v1"
@@ -23,7 +25,7 @@ WIKIMEDIA_SEARCH = "https://commons.wikimedia.org/w/api.php"
 WIKIMEDIA_INFO = "https://commons.wikimedia.org/w/api.php"
 THUMB_WIDTH = 960
 MAX_FALLBACK_ATTEMPTS = 4
-REQUEST_DELAY = 0.5
+REQUEST_DELAY = 1.5
 
 
 class ImageFetcher:
@@ -63,7 +65,12 @@ class ImageFetcher:
         if dest.get("nps_park_code"):
             images.extend(self._fetch_from_nps(dest["nps_park_code"]))
 
-        # Source 2: Wikimedia (always attempted, fills remaining slots)
+    # Source 2: Unsplash (preferred over Wikimedia)
+        if len(images) < self._max_per_dest:
+            remaining = self._max_per_dest - len(images)
+            images.extend(self._fetch_from_unsplash(dest["name"], limit=remaining))
+
+    # Source 3: Wikimedia (fallback)
         if len(images) < self._max_per_dest:
             remaining = self._max_per_dest - len(images)
             images.extend(self._fetch_from_wikimedia(dest["name"], limit=remaining + 2))
@@ -170,6 +177,49 @@ class ImageFetcher:
         except requests.RequestException as exc:
             logger.warning("Wikimedia search error for '%s': %s", query, exc)
             return []
+        
+        # ── Unsplash images ───────────────────────────────────────────────────────
+
+    def _fetch_from_unsplash(self, query: str, limit: int = 4) -> list[dict[str, Any]]:
+        key = os.environ.get("UNSPLASH_ACCESS_KEY")
+        if not key:
+            return []
+
+        try:
+            url = "https://api.unsplash.com/search/photos"
+            params = {
+                "query": query,
+                "per_page": limit,
+                "orientation": "landscape",
+            }
+            headers = {
+                "Authorization": f"Client-ID {key}",
+                "User-Agent": "RoadTripItineraryGenerator/1.0"
+            }
+
+            resp = self._session.get(url, params=params, headers=headers, timeout=10)
+            resp.raise_for_status()
+
+            results = []
+            for item in resp.json().get("results", []):
+                img_url = item.get("urls", {}).get("regular")
+                if not img_url:
+                    continue
+
+                results.append({
+                    "url": img_url,
+                    "title": item.get("alt_description") or item.get("description") or "",
+                    "credit": item.get("user", {}).get("name", "Unsplash"),
+                    "license": "Unsplash License",
+                    "source": "unsplash",
+                })
+
+            return results[:limit]
+
+        except requests.RequestException as exc:
+            logger.warning("Unsplash search error for '%s': %s", query, exc)
+            return []
+
 
     # ── Download to local file ───────────────────────────────────────────────
 
@@ -202,7 +252,7 @@ class ImageFetcher:
         base = destination.split(",")[0].strip()
         return [
             f"{base} landscape",
-            f"{base} scenery national park",
-            f"{base} United States",
-            f"{base} outdoor",
+            f"{base} mountains",
+            f"{base} aerial view",
+            f"{base} scenic",
         ]
