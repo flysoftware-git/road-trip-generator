@@ -1,5 +1,11 @@
 # Road Trip Itinerary Generator — Requirements Document
-**Version 0.5 · July 9, 2026**
+**Version 0.6 · July 19, 2026**
+
+### Changelog from v0.5
+| # | Section | Change |
+|---|---|---|
+| 1 | §2, §5, §11 | Search client migrated from Brave Search API (v1.2) to Bing Web Search API — Azure AI Services (v1.3); env var renamed `BRAVE_SEARCH_API_KEY` → `BING_SEARCH_API_KEY` |
+| 2 | §2 | Parallel execution model added: AI calls, cultural events, image fetching, and URL discovery now run concurrently across destinations via `ThreadPoolExecutor` |
 
 ### Changelog from v0.4
 | # | Section | Change |

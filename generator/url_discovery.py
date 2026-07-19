@@ -1,5 +1,5 @@
 """
-url_discovery.py — Per-item URL discovery via Brave Search API.
+url_discovery.py — Per-item URL discovery via Bing Web Search (Azure AI Services).
 
 AI NEVER generates URLs. This module discovers URLs for every named
 attraction, restaurant, scenic drive, and en-route stop after AI
@@ -12,18 +12,18 @@ Two-pass restaurant strategy:
 Search API history:
   v1.0: Bing Search API v7 (retired August 11, 2025)
   v1.1: Google Custom Search (deprecated full-web search, unusable)
-  v1.2: Brave Search API (current) — api.search.brave.com
-        Free tier: 2,000 queries/month, no credit card required
+  v1.2: Brave Search API (retired in favour of Azure AI Services)
+  v1.3: Bing Web Search API — Azure AI Services (current)
+        api.bing.microsoft.com/v7.0/search
 """
 from __future__ import annotations
-import logging, os, time
+import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
-import requests
+from generator.bing_search import BingWebSearch
 
 logger = logging.getLogger(__name__)
-BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
 MAX_FALLBACK_ATTEMPTS = 4
-REQUEST_DELAY = 0.25
 
 
 def _build_query_variants(name: str, destination: str, category: str) -> list[str]:
@@ -38,27 +38,33 @@ def _build_query_variants(name: str, destination: str, category: str) -> list[st
 
 class URLDiscoverer:
     def __init__(self, config_path: str | Any = "config.yaml") -> None:
-        self._api_key = os.environ["BRAVE_SEARCH_API_KEY"]
-        self._headers = {
-            "Accept": "application/json",
-            "Accept-Encoding": "gzip",
-            "X-Subscription-Token": self._api_key,
-        }
-        self._session = requests.Session()
-        self._session.headers.update(self._headers)
+        self._search = BingWebSearch()
 
     # ── Public entry point ───────────────────────────────────────────────────
 
     def discover_all(self, trip: dict[str, Any]) -> None:
-        for dest in trip.get("destinations", []):
+        destinations = trip.get("destinations", [])
+
+        def _discover_one(dest: dict) -> None:
             name = dest["name"]
             ai = dest.get("ai_content", {})
             nps_code = dest.get("nps_park_code")
             logger.info("URL discovery for '%s'…", name)
-            self._discover_attractions(ai, dest_name=name, nps_code=nps_code)
-            self._discover_restaurants(ai, dest_name=name)
-            self._discover_en_route_stops(ai, dest_name=name)
-            self._discover_scenic_drives(dest, dest_name=name)
+            # Parallelise the four independent URL categories within each destination
+            with ThreadPoolExecutor(max_workers=4) as inner:
+                futs = [
+                    inner.submit(self._discover_attractions, ai, name, nps_code),
+                    inner.submit(self._discover_restaurants, ai, name),
+                    inner.submit(self._discover_en_route_stops, ai, name),
+                    inner.submit(self._discover_scenic_drives, dest, name),
+                ]
+                for f in as_completed(futs):
+                    f.result()
+
+        with ThreadPoolExecutor(max_workers=min(len(destinations), 3)) as pool:
+            futures = [pool.submit(_discover_one, d) for d in destinations]
+            for f in as_completed(futures):
+                f.result()
 
     # ── Attractions ──────────────────────────────────────────────────────────
 
@@ -120,7 +126,7 @@ class URLDiscoverer:
             )
             drive["url"] = url or ""
 
-    # ── Brave Search helpers ─────────────────────────────────────────────────
+    # ── Bing Search helpers ──────────────────────────────────────────────────
 
     def _search_first(
         self,
@@ -128,39 +134,9 @@ class URLDiscoverer:
         site_filter: str | None = None,
         site_hint: str | None = None,
     ) -> str | None:
-        from generator.url_validator import URLValidator
-        uv = URLValidator()
-
-        for query in query_variants[:MAX_FALLBACK_ATTEMPTS]:
-            # Prepend site: operator if filtering to a specific domain
-            if site_hint:
-                full_query = f"{site_hint} {query}"
-            elif site_filter:
-                full_query = f"site:{site_filter} {query}"
-            else:
-                full_query = query
-
-            try:
-                resp = self._session.get(
-                    BRAVE_SEARCH_ENDPOINT,
-                    params={"q": full_query, "count": 5, "search_lang": "en"},
-                    timeout=10,
-                )
-                resp.raise_for_status()
-                results = resp.json().get("web", {}).get("results", [])
-                for item in results:
-                    url = item.get("url", "")
-                    if not url:
-                        continue
-                    # If domain filtering, check that result is on right domain
-                    if site_filter and site_filter not in url:
-                        continue
-                    ok, _ = uv.verify_url(url)
-                    if ok:
-                        logger.debug("  URL: %s → %s", full_query[:60], url[:80])
-                        return url
-                time.sleep(REQUEST_DELAY)
-            except requests.RequestException as exc:
-                logger.warning("Brave Search error for '%s': %s", query[:60], exc)
-
-        return None
+        return self._search.search_first_url(
+            query_variants,
+            site_filter=site_filter,
+            site_hint=site_hint,
+            max_attempts=MAX_FALLBACK_ATTEMPTS,
+        )

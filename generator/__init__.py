@@ -2,7 +2,7 @@
 Road Trip Itinerary Generator
 ==============================
 Python CLI that converts a minimal YAML trip manifest into a single
-self-contained HTML itinerary using multi-provider LLMs, Brave Search, the NPS API,
+self-contained HTML itinerary using multi-provider LLMs, Bing Web Search (Azure AI Services), the NPS API,
 and Wikimedia Commons.
 """
 

@@ -27,18 +27,16 @@ azure_openai:
   retry_attempts: 3
   retry_backoff_seconds: 2
 
-# ── Brave Search API ──────────────────────────────────────────────────────────
-# Replaces: Bing Search API v7 (retired August 11, 2025)
-#           Google Custom Search (full-web deprecated, June 2025)
-# Sign up:  https://api.search.brave.com  (free, no credit card)
-# Free tier: 2,000 queries/month
-# Key read from env: BRAVE_SEARCH_API_KEY
-brave_search:
-  endpoint: "https://api.search.brave.com/res/v1/web/search"
+# ── Bing Web Search API (Azure AI Services) ──────────────────────────────────
+# Replaces: Brave Search API (v1.2)
+# Docs:     https://learn.microsoft.com/azure/cognitive-services/bing-web-search/
+# Portal:   https://portal.azure.com → Azure AI Services → Bing Search
+# Key read from env: BING_SEARCH_API_KEY
+bing_search:
+  endpoint: "https://api.bing.microsoft.com/v7.0/search"
   results_per_query: 8
-  retry_attempts: 3
   timeout_seconds: 10
-  request_delay_seconds: 0.25
+  request_delay_seconds: 0.1
 
 # ── NPS API ──────────────────────────────────────────────────────────────────
 nps:
