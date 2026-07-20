@@ -29,6 +29,7 @@ DEFAULT_PRICING_USD_PER_1M: dict[str, dict[str, float]] = {
     "deepseek:deepseek-chat": {"input": 0.27, "output": 1.10},
     "deepseek:deepseek-reasoner": {"input": 0.55, "output": 2.19},
     "grok:grok-2-latest": {"input": 2.00, "output": 10.00},
+    "grok:grok-4.5": {"input": 3.00, "output": 15.00},
     "anthropic:claude-3-5-sonnet-latest": {"input": 3.00, "output": 15.00},
     "anthropic:claude-3-7-sonnet-latest": {"input": 3.00, "output": 15.00},
     "gemini:gemini-1.5-pro": {"input": 3.50, "output": 10.50},
@@ -181,8 +182,8 @@ class MultiLLMClient:
         elif self.provider not in {"anthropic", "gemini", "grok"}:
             raise ValueError(f"Unsupported LLM provider: {self.provider}")
         elif self.provider == "grok":
-            from generator.providers.grok import GrokClient
-            self._client = GrokClient(os.environ["GROK_API_KEY"], self.model)
+            from generator.providers.grok import GrokProvider
+            self._client = GrokProvider(self.model)
 
 
     def generate_json(
