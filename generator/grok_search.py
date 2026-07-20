@@ -27,6 +27,10 @@ logger = logging.getLogger(__name__)
 GROK_ENDPOINT = "https://api.x.ai/v1/chat/completions"
 _DEFAULT_DELAY = 0.05
 
+# Global semaphore: cap concurrent connections to xAI API to avoid rate limiting.
+# 16 parallel threads → xAI rate-limits → all time out. Keep it at 4.
+_GROK_SEMAPHORE = threading.Semaphore(4)
+
 
 class GrokSearch:
     """
@@ -44,7 +48,7 @@ class GrokSearch:
         self,
         api_key: str | None = None,
         model: str | None = None,
-        timeout_seconds: int = 8,
+        timeout_seconds: int = 15,
         request_delay_seconds: float = _DEFAULT_DELAY,
     ) -> None:
         self._api_key = api_key or os.environ["XAI_API_KEY"]
@@ -108,12 +112,13 @@ class GrokSearch:
             logger.debug(f"[Grok-Attempt{attempt}] Posting to {GROK_ENDPOINT} with model={self._model}")
             logger.debug(f"[Grok-Attempt{attempt}] API Key prefix: {self._api_key[:20]}...")
             logger.debug(f"[Grok-Attempt{attempt}] Query: {query[:100]}")
-            
-            resp = self._get_session().post(
-                GROK_ENDPOINT,
-                json=payload,
-                timeout=self._timeout,
-            )
+
+            with _GROK_SEMAPHORE:
+                resp = self._get_session().post(
+                    GROK_ENDPOINT,
+                    json=payload,
+                    timeout=self._timeout,
+                )
             logger.debug(f"[Grok-Attempt{attempt}] Response Status: {resp.status_code}")
             
             resp.raise_for_status()

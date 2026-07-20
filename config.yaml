@@ -35,7 +35,7 @@ azure_openai:
 grok_search:
   endpoint: "https://api.x.ai/v1/chat/completions"
   model: "grok-2-latest"
-  timeout_seconds: 8
+  timeout_seconds: 15
   request_delay_seconds: 0.05
 
 # ── NPS API ──────────────────────────────────────────────────────────────────
