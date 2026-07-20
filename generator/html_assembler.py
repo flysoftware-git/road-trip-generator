@@ -120,12 +120,7 @@ class HTMLAssembler:
         # ── Trip-level substitutions ─────────────────────────────────────────
         meta = trip["trip"]
         html = html.replace("<!--TRIP_TITLE-->", meta["title"])
-        html = html.replace("<!--TRIP_SUBTITLE-->", meta["subtitle"])
         html = html.replace("<!--THEME_COLOR-->", meta.get("theme_color", "#C0623E"))
-
-        # NEW: environment metadata
-        if "environment" in trip.get("_meta", {}):
-            html = html.replace("{{environment}}", trip["_meta"]["environment"])
 
         # ── Google Maps overview link ────────────────────────────────────────
         gmaps_url = self._build_google_maps_url(trip["destinations"])
@@ -151,10 +146,6 @@ class HTMLAssembler:
             "var DRIVE_DESCRIPTIONS = {};",
             f"var DRIVE_DESCRIPTIONS = {drive_json};",
         )
-
-        # ── Attribution footer ───────────────────────────────────────────────
-        if attribution_block:
-            html = html.replace("<!--ATTRIBUTION_BLOCK-->", attribution_block)
 
         return html
 

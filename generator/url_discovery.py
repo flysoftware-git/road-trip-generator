@@ -27,14 +27,15 @@ from generator.grok_search import GrokSearch
 logger = logging.getLogger(__name__)
 MAX_FALLBACK_ATTEMPTS = 4
 
+# ── URL Search Cache ────────────────────────────────────────────────────
+_url_cache: dict[tuple[str, str, str], str | None] = {}
+
 
 def _build_query_variants(name: str, destination: str, category: str) -> list[str]:
-    """Return 4 progressively broader query strings for a named item."""
+    """Return 2 progressively broader query strings for a named item."""
     return [
         f'"{name}" {destination} {category} official site',
-        f'"{name}" {destination} {category}',
         f'{name} {destination} {category}',
-        f'{name} {destination}',
     ]
 
 
@@ -81,12 +82,16 @@ class URLDiscoverer:
                 _build_query_variants(attr_name, dest_name, "trail hike attraction"),
                 site_filter="nps.gov" if nps_code else None,
                 site_hint=site_hint,
+                item_name=attr_name,
+                dest_name=dest_name,
             )
             # Fallback: AllTrails
             if not url:
                 url = self._search_first(
                     _build_query_variants(attr_name, dest_name, "trail hiking"),
                     site_filter="alltrails.com",
+                    item_name=attr_name,
+                    dest_name=dest_name,
                 )
             attr["url"] = url or ""
 
@@ -99,12 +104,16 @@ class URLDiscoverer:
             url = self._search_first(
                 _build_query_variants(rest_name, dest_name, "restaurant"),
                 site_filter="google.com/maps",
+                item_name=rest_name,
+                dest_name=dest_name,
             )
             # Pass 2: TripAdvisor
             if not url:
                 url = self._search_first(
                     _build_query_variants(rest_name, dest_name, "restaurant"),
                     site_filter="tripadvisor.com",
+                    item_name=rest_name,
+                    dest_name=dest_name,
                 )
             rest["url"] = url or ""
 
@@ -114,7 +123,9 @@ class URLDiscoverer:
         for stop in ai.get("getting_here", {}).get("en_route_stops", []):
             stop_name = stop.get("name", "")
             url = self._search_first(
-                _build_query_variants(stop_name, dest_name, "attraction stop")
+                _build_query_variants(stop_name, dest_name, "attraction stop"),
+                item_name=stop_name,
+                dest_name=dest_name,
             )
             stop["url"] = url or ""
 
@@ -124,7 +135,9 @@ class URLDiscoverer:
         for drive in dest.get("scenic_drives", []):
             drive_name = drive.get("title", "")
             url = self._search_first(
-                _build_query_variants(drive_name, dest_name, "scenic drive viewpoint")
+                _build_query_variants(drive_name, dest_name, "scenic drive viewpoint"),
+                item_name=drive_name,
+                dest_name=dest_name,
             )
             drive["url"] = url or ""
 
@@ -135,10 +148,20 @@ class URLDiscoverer:
         query_variants: list[str],
         site_filter: str | None = None,
         site_hint: str | None = None,
+        item_name: str = "",
+        dest_name: str = "",
     ) -> str | None:
-        return self._search.search_first_url(
+        # Check cache first
+        cache_key = (item_name, dest_name, site_filter or "")
+        if cache_key in _url_cache:
+            return _url_cache[cache_key]
+        
+        # Search and cache result
+        result = self._search.search_first_url(
             query_variants,
             site_filter=site_filter,
             site_hint=site_hint,
             max_attempts=MAX_FALLBACK_ATTEMPTS,
         )
+        _url_cache[cache_key] = result
+        return result
