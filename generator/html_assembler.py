@@ -146,10 +146,36 @@ class HTMLAssembler:
 
         # ── var DRIVE_DESCRIPTIONS (NOT const — required by validator) ───────
         drive_descriptions = self._build_drive_descriptions(trip["destinations"])
-        html = html.replace(
-            "var DRIVE_DESCRIPTIONS = {}",
-            f"var DRIVE_DESCRIPTIONS = {json.dumps(drive_descriptions, indent=2)}"
-        )
+        # Replace the entire DRIVE_DESCRIPTIONS object
+        # Find from "var DRIVE_DESCRIPTIONS = {" to the matching closing brace + semicolon
+        import re
+        drive_json = json.dumps(drive_descriptions, indent=2)
+        # Look for the start of DRIVE_DESCRIPTIONS and find the closing }; 
+        start_marker = "var DRIVE_DESCRIPTIONS = {"
+        start_idx = html.find(start_marker)
+        if start_idx != -1:
+            # Find the end: look for "};" after this point, accounting for nested braces
+            end_idx = start_idx + len(start_marker)
+            brace_depth = 1
+            in_string = False
+            escape = False
+            while end_idx < len(html) and brace_depth > 0:
+                ch = html[end_idx]
+                if escape:
+                    escape = False
+                elif ch == '\\':
+                    escape = True
+                elif ch == '"':
+                    in_string = not in_string
+                elif not in_string:
+                    if ch == '{':
+                        brace_depth += 1
+                    elif ch == '}':
+                        brace_depth -= 1
+                end_idx += 1
+            # Now end_idx should be right after the closing }
+            if brace_depth == 0 and end_idx < len(html) and html[end_idx] == ';':
+                html = html[:start_idx] + f"var DRIVE_DESCRIPTIONS = {drive_json};" + html[end_idx+1:]
 
         # ── Attribution footer ───────────────────────────────────────────────
         if attribution_block:

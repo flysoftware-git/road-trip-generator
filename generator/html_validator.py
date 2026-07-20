@@ -129,8 +129,8 @@ class HTMLValidator:
     def _check_section_div_balance(self, html: str, trip: dict[str, Any], errors: list[str]) -> None:
         for dest in trip.get("destinations", []):
             dest_id = dest["id"]
-            # Find section start/end
-            start_pat = re.compile(rf'<section[^>]+id="{re.escape(dest_id)}"[^>]*>', re.IGNORECASE)
+            # Find section start/end (template uses id="section-{dest_id}")
+            start_pat = re.compile(rf'<section[^>]+id="section-{re.escape(dest_id)}"[^>]*>', re.IGNORECASE)
             start_m = start_pat.search(html)
             end_m = re.search(r'</section>', html[start_m.end():]) if start_m else None
             if not start_m or not end_m:
