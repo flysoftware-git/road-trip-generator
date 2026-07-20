@@ -7,6 +7,7 @@ discovered separately by url_discovery.py after this stage completes.
 """
 from __future__ import annotations
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -33,16 +34,30 @@ class AIContentGenerator:
     def generate_destination_content(self, trip: dict[str, Any]) -> None:
         """Generate AI content for every destination. Attaches 'ai_content' in-place."""
         destinations = trip.get("destinations", [])
-        for i, dest in enumerate(destinations):
-            prev = destinations[i - 1]["name"] if i > 0 else "none"
+        prev_names = ["none"] + [d["name"] for d in destinations[:-1]]
+
+        def _one(args: tuple[int, dict]) -> None:
+            i, dest = args
             logger.info("Generating AI content for '%s'…", dest["name"])
-            dest["ai_content"] = self._generate_for_destination(dest, trip["trip"], prev)
+            dest["ai_content"] = self._generate_for_destination(dest, trip["trip"], prev_names[i])
+
+        with ThreadPoolExecutor(max_workers=min(len(destinations), 4)) as pool:
+            futures = [pool.submit(_one, (i, d)) for i, d in enumerate(destinations)]
+            for f in as_completed(futures):
+                f.result()
 
     def generate_scenic_drive_descriptions(self, trip: dict[str, Any]) -> None:
         """Generate scenic drive popup descriptions. Attaches 'scenic_drives' in-place."""
-        for dest in trip.get("destinations", []):
+        destinations = trip.get("destinations", [])
+
+        def _one(dest: dict) -> None:
             logger.info("Generating scenic drives for '%s'…", dest["name"])
             dest["scenic_drives"] = self._generate_drives(dest)
+
+        with ThreadPoolExecutor(max_workers=min(len(destinations), 4)) as pool:
+            futures = [pool.submit(_one, d) for d in destinations]
+            for f in as_completed(futures):
+                f.result()
 
     def generate_all(self, trip: dict[str, Any]) -> None:
         self.generate_destination_content(trip)

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -50,6 +51,7 @@ class UsageTracker:
     def __init__(self, pricing_map: dict[str, dict[str, float]] | None = None) -> None:
         self._pricing = pricing_map or DEFAULT_PRICING_USD_PER_1M
         self._records: list[UsageRecord] = []
+        self._lock = threading.Lock()
 
     def add(
         self,
@@ -61,17 +63,17 @@ class UsageTracker:
     ) -> None:
         total_tokens = int(prompt_tokens) + int(completion_tokens)
         estimated = self._estimate_cost(provider, model, int(prompt_tokens), int(completion_tokens))
-        self._records.append(
-            UsageRecord(
-                provider=provider,
-                model=model,
-                operation=operation,
-                prompt_tokens=int(prompt_tokens),
-                completion_tokens=int(completion_tokens),
-                total_tokens=total_tokens,
-                estimated_cost_usd=estimated,
-            )
+        record = UsageRecord(
+            provider=provider,
+            model=model,
+            operation=operation,
+            prompt_tokens=int(prompt_tokens),
+            completion_tokens=int(completion_tokens),
+            total_tokens=total_tokens,
+            estimated_cost_usd=estimated,
         )
+        with self._lock:
+            self._records.append(record)
 
     def _estimate_cost(self, provider: str, model: str, in_tokens: int, out_tokens: int) -> float:
         key = f"{provider}:{model}"

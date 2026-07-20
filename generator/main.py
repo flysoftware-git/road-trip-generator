@@ -212,38 +212,44 @@ def main(
     ai_gen.generate_all(trip)
     click.echo(f"  ✓ AI content generated for {len(trip['destinations'])} destination(s)")
 
-    # ── Stage 4: Cultural events discovery ──────────────────────────────────
-    if not skip_events:
-        click.echo("Stage 4/6 — Cultural events discovery…")
-        from generator.cultural_events import CulturalEventsDiscoverer
-        events = CulturalEventsDiscoverer(config_path, llm_client=llm_client)
-        events.discover(trip)
-        click.echo("  ✓ Cultural events resolved")
-    else:
-        click.echo("Stage 4/6 — Cultural events discovery SKIPPED")
+    # ── Stages 4 + 5a + 5b: run concurrently (all independent of each other) ─
+    from concurrent.futures import ThreadPoolExecutor, as_completed as _as_completed
 
-    # ── Stage 5a: Image fetching ─────────────────────────────────────────────
-    if not skip_images:
-        click.echo("Stage 5/6 — Fetching images…")
-        from generator.image_fetcher import ImageFetcher
-        fetcher = ImageFetcher(config_path)
-        fetcher.fetch_all(trip)
-        total = sum(len(d.get("images", [])) for d in trip["destinations"])
-        click.echo(f"  ✓ {total} images fetched")
-    else:
-        click.echo("Stage 5/6 — Image fetching SKIPPED")
-        for dest in trip["destinations"]:
-            dest.setdefault("images", [])
+    def _run_events() -> None:
+        if not skip_events:
+            click.echo("Stage 4/6 — Cultural events discovery…")
+            from generator.cultural_events import CulturalEventsDiscoverer
+            CulturalEventsDiscoverer(config_path, llm_client=llm_client).discover(trip)
+            click.echo("  ✓ Cultural events resolved")
+        else:
+            click.echo("Stage 4/6 — Cultural events discovery SKIPPED")
 
-    # ── Stage 5b: URL discovery ──────────────────────────────────────────────
-    if not skip_url_discovery:
-        click.echo("Stage 5b — URL discovery…")
-        from generator.url_discovery import URLDiscoverer
-        url_disc = URLDiscoverer(config_path)
-        url_disc.discover_all(trip)
-        click.echo("  ✓ URLs discovered and verified")
-    else:
-        click.echo("Stage 5b — URL discovery SKIPPED")
+    def _run_images() -> None:
+        if not skip_images:
+            click.echo("Stage 5/6 — Fetching images…")
+            from generator.image_fetcher import ImageFetcher
+            ImageFetcher(config_path).fetch_all(trip)
+            total = sum(len(d.get("images", [])) for d in trip["destinations"])
+            click.echo(f"  ✓ {total} images fetched")
+        else:
+            click.echo("Stage 5/6 — Image fetching SKIPPED")
+            for dest in trip["destinations"]:
+                dest.setdefault("images", [])
+
+    def _run_urls() -> None:
+        if not skip_url_discovery:
+            click.echo("Stage 5b — URL discovery…")
+            from generator.url_discovery import URLDiscoverer
+            URLDiscoverer(config_path).discover_all(trip)
+            click.echo("  ✓ URLs discovered and verified")
+        else:
+            click.echo("Stage 5b — URL discovery SKIPPED")
+
+    click.echo("Stages 4–5b — Cultural events, images, and URL discovery (parallel)…")
+    with ThreadPoolExecutor(max_workers=3) as _stage_pool:
+        _stage_futures = [_stage_pool.submit(fn) for fn in (_run_events, _run_images, _run_urls)]
+        for _f in _as_completed(_stage_futures):
+            _f.result()
 
     # ── Stage 6: Assemble HTML ───────────────────────────────────────────────
     click.echo("Stage 6/6 — Assembling HTML…")

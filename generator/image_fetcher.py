@@ -11,7 +11,8 @@ Images are embedded as data URIs in the HTML (base64) OR stored as
 relative paths in output/images/ depending on config.
 """
 from __future__ import annotations
-import hashlib, logging, mimetypes, os, time
+import hashlib, logging, mimetypes, os, threading, time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -39,22 +40,35 @@ class ImageFetcher:
         self._max_per_dest = images_cfg.get("max_per_destination", 4)
         self._output_dir = Path("output/images")
         self._output_dir.mkdir(parents=True, exist_ok=True)
-        self._session = requests.Session()
-        self._session.headers.update({"User-Agent": "RoadTripItineraryGenerator/1.0"})
+        self._session_local = threading.local()
+
+    def _get_session(self) -> requests.Session:
+        if not hasattr(self._session_local, "session"):
+            s = requests.Session()
+            s.headers.update({"User-Agent": "RoadTripItineraryGenerator/1.0"})
+            self._session_local.session = s
+        return self._session_local.session
 
     # ── Public entry point ───────────────────────────────────────────────────
 
     def fetch_all(self, trip: dict[str, Any]) -> None:
-        for dest in trip.get("destinations", []):
+        destinations = trip.get("destinations", [])
+
+        def _fetch_one(dest: dict) -> None:
             logger.info("Fetching images for '%s'…", dest["name"])
-            images = self._fetch_for_dest(dest)
-            if len(images) < self._min_per_dest:
+            imgs = self._fetch_for_dest(dest)
+            if len(imgs) < self._min_per_dest:
                 raise RuntimeError(
                     f"Image fetch failed for '{dest['name']}': "
-                    f"only {len(images)} image(s) verified (min: {self._min_per_dest})"
+                    f"only {len(imgs)} image(s) verified (min: {self._min_per_dest})"
                 )
-            dest["images"] = images
-            logger.info("  %d image(s) acquired for '%s'", len(images), dest["name"])
+            dest["images"] = imgs
+            logger.info("  %d image(s) acquired for '%s'", len(imgs), dest["name"])
+
+        with ThreadPoolExecutor(max_workers=min(len(destinations), 4)) as pool:
+            futures = {pool.submit(_fetch_one, d): d for d in destinations}
+            for f in as_completed(futures):
+                f.result()
 
     # ── Per-destination fetch ────────────────────────────────────────────────
 
@@ -112,7 +126,7 @@ class ImageFetcher:
 
     def _fetch_from_nps(self, park_code: str) -> list[dict[str, Any]]:
         try:
-            resp = self._session.get(
+            resp = self._get_session().get(
                 f"{NPS_API_BASE}/multimedia/galleries/assets",
                 params={"parkCode": park_code, "limit": 6},
                 headers={"X-Api-Key": self._nps_key},
@@ -139,7 +153,7 @@ class ImageFetcher:
 
     def _fetch_from_wikimedia(self, query: str, limit: int = 4) -> list[dict[str, Any]]:
         try:
-            resp = self._session.get(
+            resp = self._get_session().get(
                 WIKIMEDIA_SEARCH,
                 params={
                     "action": "query",
@@ -197,7 +211,7 @@ class ImageFetcher:
                 "User-Agent": "RoadTripItineraryGenerator/1.0"
             }
 
-            resp = self._session.get(url, params=params, headers=headers, timeout=10)
+            resp = self._get_session().get(url, params=params, headers=headers, timeout=10)
             resp.raise_for_status()
 
             results = []
@@ -230,7 +244,7 @@ class ImageFetcher:
         if local_path.exists():
             return local_path
         try:
-            resp = self._session.get(url, timeout=20, stream=True)
+            resp = self._get_session().get(url, timeout=20, stream=True)
             resp.raise_for_status()
             with local_path.open("wb") as f:
                 for chunk in resp.iter_content(chunk_size=65536):
