@@ -216,11 +216,14 @@ class HTMLAssembler:
         return "\n    ".join(tabs)
 
     def _build_single_section(self, dest: dict[str, Any], trip_meta: dict[str, Any]) -> str:
+        import logging
+        logger = logging.getLogger(__name__)
         ai = dest.get("ai_content", {})
         images = dest.get("images", [])
         planning_links = dest.get("planning_links", [])
         events = dest.get("cultural_events", {})
         drives = dest.get("scenic_drives", [])
+        logger.debug(f"_build_single_section for {dest['name']}: scenic_drives={len(drives)}")
 
         section_id = sanitize_dest_id(dest["name"])
         section = f'<section id="{section_id}" class="destination-section">\n'  
@@ -344,7 +347,11 @@ class HTMLAssembler:
         return html
 
     def _build_drive_buttons(self, drives: list) -> str:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug(f"_build_drive_buttons called with {len(drives)} drives")
         if not drives:
+            logger.debug("  Skipping (empty drives list)")
             return ""
         html = '<div class="card drives-card">\n<h3>Scenic Drives &amp; Viewpoints</h3>\n<div class="drive-buttons">\n'
         for drive in drives:
@@ -354,6 +361,7 @@ class HTMLAssembler:
                 f'onclick="showDriveModal(\'{key}\')">{drive.get("title", "")}</button>\n'
             )
         html += '</div>\n</div>\n'
+        logger.debug(f"  Generated {len(drives)} drive buttons")
         return html
 
     def _build_events(self, events: dict, dest_name: str) -> str:
