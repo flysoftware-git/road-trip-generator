@@ -14,16 +14,11 @@
 |---|---|---|
 | 1 | §2, §5, §11 | Search client migrated from Google Programmable Search Engine (v1.4, rate-limited) to xAI Grok semantic search (v1.5); env var changed to `XAI_API_KEY` (single key, simpler setup) |
 
-### Changelog from v0.6
-| # | Section | Change |
-|---|---|---|
-| 1 | §2, §5, §11 | Search client migrated from Bing Web Search API (v1.3) to Google Programmable Search Engine (v1.4); env vars changed to `GOOGLE_SEARCH_API_KEY` + `GOOGLE_SEARCH_ENGINE_ID` |
+### Changelog from v0.6 *(superseded)*
+Migrated from Bing Web Search (v1.3) → Google Programmable Search (v1.4). Fully superseded by v0.8 Grok migration.
 
-### Changelog from v0.5
-| # | Section | Change |
-|---|---|---|
-| 1 | §2, §5, §11 | Search client migrated from Brave Search API (v1.2) to Bing Web Search API — Azure AI Services (v1.3); env var renamed `BRAVE_SEARCH_API_KEY` → `BING_SEARCH_API_KEY` |
-| 2 | §2 | Parallel execution model added: AI calls, cultural events, image fetching, and URL discovery now run concurrently across destinations via `ThreadPoolExecutor` |
+### Changelog from v0.5 *(superseded)*
+Migrated from Brave Search (v1.2) → Bing Web Search (v1.3). Fully superseded by v0.8 Grok migration. Added parallel `ThreadPoolExecutor` execution model.
 
 ---
 
@@ -59,12 +54,12 @@ The output file must be deployable to GitHub Pages or any static host with zero 
 │  • Per-destination content: environment, attractions,   │
 │    en-route stops, schedule, restaurants (NO URLS)      │
 │  • Scenic drives + viewpoints (fully AI-discovered)     │
-│  • Cultural events via Bing Search + AI synthesis       │
+│  • Cultural events via Grok semantic search + AI synthesis│
 └────────────────────┬────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────┐
-│  STAGE 3: URL Discovery (Bing Search API)               │
+│  STAGE 3: URL Discovery (xAI Grok Semantic Search)      │
 │  • Per-item URL discovery for every named entity        │
 │  • NPS domain filter for park attractions               │
 │  • Two-pass restaurant strategy:                        │
@@ -249,7 +244,7 @@ The AI must NEVER invent events. Remote national parks almost always return Form
 
 AI content generation and URL discovery are strictly separate pipeline stages. **AI never generates URLs.**
 
-After AI content is generated, the URL Discoverer runs Bing Search for every named entity:
+After AI content is generated, the URL Discoverer uses xAI Grok semantic search for every named entity:
 
 1. **Attractions in NPS parks:** First query uses `site:nps.gov` domain filter
 2. **All attractions:** Falls back to AllTrails domain filter
