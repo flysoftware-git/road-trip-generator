@@ -44,7 +44,7 @@ class GrokSearch:
         self,
         api_key: str | None = None,
         model: str | None = None,
-        timeout_seconds: int = 15,
+        timeout_seconds: int = 8,
         request_delay_seconds: float = _DEFAULT_DELAY,
     ) -> None:
         self._api_key = api_key or os.environ["XAI_API_KEY"]
@@ -103,6 +103,7 @@ class GrokSearch:
                     {"role": "user", "content": query},
                 ],
                 "temperature": 0.7,
+                "response_format": {"type": "json_object"},
             }
             logger.debug(f"[Grok-Attempt{attempt}] Posting to {GROK_ENDPOINT} with model={self._model}")
             logger.debug(f"[Grok-Attempt{attempt}] API Key prefix: {self._api_key[:20]}...")

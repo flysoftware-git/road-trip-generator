@@ -152,14 +152,23 @@ def main(
     click.echo("Stage 2/6 — Geocoding & enrichment…")
     from generator.geocoder import Geocoder
     from generator.nps_resolver import NPSResolver
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     geo = Geocoder()
     nps = NPSResolver()
+    # Geocoding is sequential (Nominatim ToS: 1 req/sec)
     for dest in trip["destinations"]:
         lat, lng = geo._geocode(dest["name"])
         dest["lat"] = lat
         dest["lng"] = lng
+    # NPS resolution is independent — run in parallel
+    def _resolve_nps(dest: dict) -> None:
         dest["nps_park_code"] = nps.resolve(dest["name"])
-        click.echo(f"  ✓ {dest['name']}: lat={lat:.4f} lng={lng:.4f} nps={dest['nps_park_code']}")
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = {pool.submit(_resolve_nps, d): d for d in trip["destinations"]}
+        for f in as_completed(futures):
+            f.result()
+    for dest in trip["destinations"]:
+        click.echo(f"  \u2713 {dest['name']}: lat={dest['lat']:.4f} lng={dest['lng']:.4f} nps={dest['nps_park_code']}")
 
     # ── Stage 3: AI content generation ──────────────────────────────────────
     click.echo("Stage 3/6 — AI content generation…")
