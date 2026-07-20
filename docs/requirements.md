@@ -1,5 +1,13 @@
 # Road Trip Itinerary Generator — Requirements Document
-**Version 0.8 · July 19, 2026**
+**Version 0.9 · July 20, 2026**
+
+### Changelog from v0.8
+| # | Section | Change |
+|---|---|---|
+| 1 | §7 | `v2.5_template.html` converted from hardcoded reference document to true generator template: trip title, nav tabs, Google Maps URL, Leaflet map markers, and all destination sections now use injection placeholders |
+| 2 | §7 | Assembler updated to produce output matching template's CSS/JS conventions: section IDs use `section-{id}` format, CSS class `dest-section`, drive buttons use `class="drive-link"` + `data-drive-title`, `DRIVE_DESCRIPTIONS` keyed by raw title string |
+| 3 | §7 | Validator updated to check `data-drive-title` attribute (not `data-drive-key`) and `id="section-{id}"` format (not bare `id="{id}"`) |
+| 4 | §11 | Added `XAI_MODEL` env var to select Grok model; `XAI_API_KEY` already present since v0.8 |
 
 ### Changelog from v0.7
 | # | Section | Change |
@@ -276,6 +284,31 @@ On every run, the generator verifies the template checksum before processing. A 
 
 The template is never fetched at runtime.
 
+### 7.1 Template Injection Placeholders
+
+The template is a true generator template — all trip-specific content is injected at runtime. Hardcoded content from the reference document has been replaced with the following placeholders:
+
+| Placeholder | Replaced With |
+|---|---|
+| `<!--TRIP_TITLE-->` | `trip.title` from manifest |
+| `<!--NAV_TABS-->` | Generated `<button class="tab-btn" data-tab="section-{id}">` elements + Google Maps link |
+| `<!--DESTINATION_SECTIONS-->` | Full per-destination section HTML built by `HTMLAssembler` |
+| `'<!--MAP_MARKERS_JSON-->'` | JSON array of `{c:[lat,lng], mo, dy, name}` objects for Leaflet map |
+| `var DRIVE_DESCRIPTIONS = {};` | Populated with AI-generated drive descriptions keyed by raw title string |
+
+### 7.2 Template CSS/JS Conventions
+
+The assembler must produce output conforming to the template's JavaScript expectations:
+
+| Element | Required Format |
+|---|---|
+| Destination sections | `<section id="section-{id}" class="dest-section">` |
+| Nav tab buttons | `<button class="tab-btn" data-tab="section-{id}">` |
+| Scenic drive buttons | `<button class="drive-link" data-drive-title="{title}">` |
+| `DRIVE_DESCRIPTIONS` keys | Raw title string (e.g. `"Zion Canyon Scenic Drive"`) |
+
+The template JavaScript queries `.dest-section` for scroll-spy, `.tab-btn[data-tab]` for navigation, and `.drive-link[data-drive-title]` for scenic drive modals.
+
 ---
 
 ## 8. Attribution Footer
@@ -332,6 +365,7 @@ Key configurable values:
 | `AZURE_OPENAI_DEPLOYMENT` | ✅ | Model deployment name |
 | `AZURE_OPENAI_API_VERSION` | ❌ | API version (default: `2024-02-01`) |
 | `XAI_API_KEY` | ✅ | xAI Grok API key |
+| `XAI_MODEL` | ❌ | Grok model name (default: `grok-2-latest`; set to `grok-4.5` or later as available) |
 | `NPS_API_KEY` | ❌ | NPS API key (default: `DEMO_KEY`, rate-limited) |
 
 ---
