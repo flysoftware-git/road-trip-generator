@@ -79,8 +79,8 @@ class HTMLValidator:
             errors.append("DRIVE_DESCRIPTIONS is not valid JSON — cannot validate drive modal keys")
             return
 
-        # Extract data-drive-key attributes from HTML
-        modal_keys = set(re.findall(r'data-drive-key="([^"]+)"', html))
+        # Extract data-drive-title attributes from HTML (template uses drive-link + data-drive-title)
+        modal_keys = set(re.findall(r'data-drive-title="([^"]+)"', html))
         dd_keys = set(dd.keys())
 
         orphan_modals = modal_keys - dd_keys

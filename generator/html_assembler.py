@@ -144,38 +144,13 @@ class HTMLAssembler:
             sections_html += self._build_single_section(dest, meta)
         html = html.replace("<!--DESTINATION_SECTIONS-->", sections_html)
 
-        # ── var DRIVE_DESCRIPTIONS (NOT const — required by validator) ───────
+        # ── var DRIVE_DESCRIPTIONS (keyed by raw title, matches template JS) ──
         drive_descriptions = self._build_drive_descriptions(trip["destinations"])
-        # Replace the entire DRIVE_DESCRIPTIONS object
-        # Find from "var DRIVE_DESCRIPTIONS = {" to the matching closing brace + semicolon
-        import re
         drive_json = json.dumps(drive_descriptions, indent=2)
-        # Look for the start of DRIVE_DESCRIPTIONS and find the closing }; 
-        start_marker = "var DRIVE_DESCRIPTIONS = {"
-        start_idx = html.find(start_marker)
-        if start_idx != -1:
-            # Find the end: look for "};" after this point, accounting for nested braces
-            end_idx = start_idx + len(start_marker)
-            brace_depth = 1
-            in_string = False
-            escape = False
-            while end_idx < len(html) and brace_depth > 0:
-                ch = html[end_idx]
-                if escape:
-                    escape = False
-                elif ch == '\\':
-                    escape = True
-                elif ch == '"':
-                    in_string = not in_string
-                elif not in_string:
-                    if ch == '{':
-                        brace_depth += 1
-                    elif ch == '}':
-                        brace_depth -= 1
-                end_idx += 1
-            # Now end_idx should be right after the closing }
-            if brace_depth == 0 and end_idx < len(html) and html[end_idx] == ';':
-                html = html[:start_idx] + f"var DRIVE_DESCRIPTIONS = {drive_json};" + html[end_idx+1:]
+        html = html.replace(
+            "var DRIVE_DESCRIPTIONS = {};",
+            f"var DRIVE_DESCRIPTIONS = {drive_json};",
+        )
 
         # ── Attribution footer ───────────────────────────────────────────────
         if attribution_block:
@@ -194,26 +169,34 @@ class HTMLAssembler:
         return f"https://www.google.com/maps/dir/{waypoints}"
 
     def _build_map_markers(self, destinations: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        return [
-            {
-                "id": d["id"],
-                "name": d["name"],
-                "lat": d.get("lat", 0),
-                "lng": d.get("lng", 0),
-                "dates": d.get("dates", ""),
-            }
-            for d in destinations
-        ]
+        """Build Leaflet stops array in {c:[lat,lng], mo, dy, name} format."""
+        import re
+        result = []
+        for d in destinations:
+            dates = d.get("dates", "")
+            # Extract month abbrev and start day from e.g. "October 7-9, 2026"
+            mo_match = re.match(r'([A-Za-z]+)\s+(\d+)', dates)
+            mo = mo_match.group(1)[:3] if mo_match else ""
+            dy = mo_match.group(2) if mo_match else ""
+            short = d["name"].replace(" National Park", "").replace(" State Park", "")
+            result.append({"c": [d.get("lat", 0), d.get("lng", 0)], "mo": mo, "dy": dy, "name": short})
+        return result
 
     def _build_nav_tabs(self, destinations: list[dict[str, Any]]) -> str:
+        """Build tab-btn buttons (data-tab=section-{id}) + Google Maps link."""
+        gmaps_url = self._build_google_maps_url(destinations)
         tabs = []
         for i, dest in enumerate(destinations):
-            active = ' class="active"' if i == 0 else ""
-            short_name = dest["name"].split(" National")[0].split(",")[0].strip()
-            tabs.append(
-                f'<button data-dest="{sanitize_dest_id(dest["name"])}"{active}>{short_name}</button>'
-            )
-        return "\n    ".join(tabs)
+            active = ' active' if i == 0 else ''
+            dest_id = sanitize_dest_id(dest["name"])
+            short = dest["name"].replace(" National Park", "").replace(" State Park", "").split(",")[0].strip()
+            label = f"{i + 1} · {short}"
+            tabs.append(f'<button class="tab-btn{active}" data-tab="section-{dest_id}">{label}</button>')
+        tabs.append(
+            f'<a href="{gmaps_url}" target="_blank" rel="noopener" class="map-tab-btn">'
+            f'\U0001f5fa\ufe0f Full Route Map</a>'
+        )
+        return "\n          ".join(tabs)
 
     def _build_single_section(self, dest: dict[str, Any], trip_meta: dict[str, Any]) -> str:
         import logging
@@ -226,7 +209,7 @@ class HTMLAssembler:
         logger.debug(f"_build_single_section for {dest['name']}: scenic_drives={len(drives)}")
 
         section_id = sanitize_dest_id(dest["name"])
-        section = f'<section id="{section_id}" class="destination-section">\n'  
+        section = f'<section id="section-{section_id}" class="dest-section">\n'
 
         # Header
         section += self._build_header(dest, ai, images)
@@ -351,15 +334,12 @@ class HTMLAssembler:
         logger = logging.getLogger(__name__)
         logger.debug(f"_build_drive_buttons called with {len(drives)} drives")
         if not drives:
-            logger.debug("  Skipping (empty drives list)")
             return ""
         html = '<div class="card drives-card">\n<h3>Scenic Drives &amp; Viewpoints</h3>\n<div class="drive-buttons">\n'
         for drive in drives:
-            key = sanitize_drive_key(drive.get("title", ""))
-            html += (
-                f'  <button class="drive-btn" data-drive-key="{key}" '
-                f'onclick="showDriveModal(\'{key}\')">{drive.get("title", "")}</button>\n'
-            )
+            title = drive.get("title", "")
+            safe = title.replace('"', '&quot;').replace("'", "&#39;")
+            html += f'  <button class="drive-link" data-drive-title="{safe}">{title}</button>\n'
         html += '</div>\n</div>\n'
         logger.debug(f"  Generated {len(drives)} drive buttons")
         return html
@@ -441,11 +421,11 @@ class HTMLAssembler:
         return html
 
     def _build_drive_descriptions(self, destinations: list[dict]) -> dict[str, Any]:
-        """Build the var DRIVE_DESCRIPTIONS JS object keyed by drive title slug."""
+        """Build DRIVE_DESCRIPTIONS keyed by raw title string (matches template JS lookup)."""
         result: dict[str, Any] = {}
         for dest in destinations:
             for drive in dest.get("scenic_drives", []):
-                key = sanitize_drive_key(drive.get("title", ""))
+                key = drive.get("title", "")
                 result[key] = {
                     "title": drive.get("title", ""),
                     "category": drive.get("category", "scenic_drive"),
