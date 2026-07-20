@@ -52,12 +52,19 @@ class AIContentGenerator:
 
         def _one(dest: dict) -> None:
             logger.info("Generating scenic drives for '%s'…", dest["name"])
-            dest["scenic_drives"] = self._generate_drives(dest)
+            result = self._generate_drives(dest)
+            dest["scenic_drives"] = result
+            logger.debug(f"  Set scenic_drives for {dest['name']}: {len(result)} drives")
 
         with ThreadPoolExecutor(max_workers=min(len(destinations), 4)) as pool:
             futures = [pool.submit(_one, d) for d in destinations]
             for f in as_completed(futures):
                 f.result()
+        
+        # Verify all destinations have scenic_drives
+        for dest in destinations:
+            count = len(dest.get("scenic_drives", []))
+            logger.info(f"✓ {dest['name']}: {count} scenic_drives")
 
     def generate_all(self, trip: dict[str, Any]) -> None:
         self.generate_destination_content(trip)
