@@ -188,7 +188,7 @@ class HTMLAssembler:
         tabs = []
         for i, dest in enumerate(destinations):
             active = ' active' if i == 0 else ''
-            dest_id = sanitize_dest_id(dest["name"])
+            dest_id = dest["id"]  # use manifest id directly
             short = dest["name"].replace(" National Park", "").replace(" State Park", "").split(",")[0].strip()
             label = f"{i + 1} · {short}"
             tabs.append(f'<button class="tab-btn{active}" data-tab="section-{dest_id}">{label}</button>')
@@ -208,7 +208,7 @@ class HTMLAssembler:
         drives = dest.get("scenic_drives", [])
         logger.debug(f"_build_single_section for {dest['name']}: scenic_drives={len(drives)}")
 
-        section_id = sanitize_dest_id(dest["name"])
+        section_id = dest["id"]  # use manifest id directly
         section = f'<section id="section-{section_id}" class="dest-section">\n'
 
         # Header
