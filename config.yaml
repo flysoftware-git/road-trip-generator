@@ -27,16 +27,16 @@ azure_openai:
   retry_attempts: 3
   retry_backoff_seconds: 2
 
-# ── Bing Web Search API (Azure AI Services) ──────────────────────────────────
-# Replaces: Brave Search API (v1.2)
-# Docs:     https://learn.microsoft.com/azure/cognitive-services/bing-web-search/
-# Portal:   https://portal.azure.com → Azure AI Services → Bing Search
-# Key read from env: BING_SEARCH_API_KEY
-bing_search:
-  endpoint: "https://api.bing.microsoft.com/v7.0/search"
-  results_per_query: 8
-  timeout_seconds: 10
-  request_delay_seconds: 0.1
+# ── xAI Grok Semantic Search ───────────────────────────────────────────
+# Replaces: Google Programmable Search Engine (v1.4, rate-limited, prohibitive costs)
+# Docs:     https://docs.x.ai/
+# API:      https://api.x.ai/v1/chat/completions
+# Key read from env: XAI_API_KEY
+grok_search:
+  endpoint: "https://api.x.ai/v1/chat/completions"
+  model: "grok-2-latest"
+  timeout_seconds: 15
+  request_delay_seconds: 0.05
 
 # ── NPS API ──────────────────────────────────────────────────────────────────
 nps:

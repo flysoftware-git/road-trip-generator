@@ -58,7 +58,7 @@ Required variables:
 | `DEEPSEEK_API_KEY` | DeepSeek API key (when `ai.provider: deepseek`) |
 | `GEMINI_API_KEY` | Gemini API key (when `ai.provider: gemini`) |
 | `GROK_API_KEY` | Grok API key (when `ai.provider: grok`) |
-| `BING_SEARCH_API_KEY` | Bing Web Search API key (Azure AI Services) |
+| `XAI_API_KEY` | xAI Grok API key |
 
 Optional:
 | Variable | Description |

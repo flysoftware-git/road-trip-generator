@@ -1,5 +1,5 @@
 """
-url_discovery.py — Per-item URL discovery via Bing Web Search (Azure AI Services).
+url_discovery.py — Per-item URL discovery via Grok semantic search.
 
 AI NEVER generates URLs. This module discovers URLs for every named
 attraction, restaurant, scenic drive, and en-route stop after AI
@@ -13,14 +13,16 @@ Search API history:
   v1.0: Bing Search API v7 (retired August 11, 2025)
   v1.1: Google Custom Search (deprecated full-web search, unusable)
   v1.2: Brave Search API (retired in favour of Azure AI Services)
-  v1.3: Bing Web Search API — Azure AI Services (current)
-        api.bing.microsoft.com/v7.0/search
+  v1.3: Bing Web Search API (deprecated, limited availability)
+  v1.4: Google Programmable Search Engine (rate-limited, prohibitive costs)
+  v1.5: xAI Grok semantic search (current)
+        api.x.ai/v1/chat/completions
 """
 from __future__ import annotations
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
-from generator.bing_search import BingWebSearch
+from generator.grok_search import GrokSearch
 
 logger = logging.getLogger(__name__)
 MAX_FALLBACK_ATTEMPTS = 4
@@ -38,7 +40,7 @@ def _build_query_variants(name: str, destination: str, category: str) -> list[st
 
 class URLDiscoverer:
     def __init__(self, config_path: str | Any = "config.yaml") -> None:
-        self._search = BingWebSearch()
+        self._search = GrokSearch()
 
     # ── Public entry point ───────────────────────────────────────────────────
 

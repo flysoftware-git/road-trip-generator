@@ -1,22 +1,21 @@
 # Road Trip Itinerary Generator — Requirements Document
-**Version 0.6 · July 19, 2026**
+**Version 0.8 · July 19, 2026**
+
+### Changelog from v0.7
+| # | Section | Change |
+|---|---|---|
+| 1 | §2, §5, §11 | Search client migrated from Google Programmable Search Engine (v1.4, rate-limited) to xAI Grok semantic search (v1.5); env var changed to `XAI_API_KEY` (single key, simpler setup) |
+
+### Changelog from v0.6
+| # | Section | Change |
+|---|---|---|
+| 1 | §2, §5, §11 | Search client migrated from Bing Web Search API (v1.3) to Google Programmable Search Engine (v1.4); env vars changed to `GOOGLE_SEARCH_API_KEY` + `GOOGLE_SEARCH_ENGINE_ID` |
 
 ### Changelog from v0.5
 | # | Section | Change |
 |---|---|---|
 | 1 | §2, §5, §11 | Search client migrated from Brave Search API (v1.2) to Bing Web Search API — Azure AI Services (v1.3); env var renamed `BRAVE_SEARCH_API_KEY` → `BING_SEARCH_API_KEY` |
 | 2 | §2 | Parallel execution model added: AI calls, cultural events, image fetching, and URL discovery now run concurrently across destinations via `ThreadPoolExecutor` |
-
-### Changelog from v0.4
-| # | Section | Change |
-|---|---|---|
-| 1 | §3.2 | `google_maps_link` removed from manifest — auto-generated from ordered destination lat/lng coordinates |
-| 2 | §3.3 | Scenic drive titles removed from seeds — fully AI-discovered (seeds are attraction/hike/experience anchors only) |
-| 3 | §3.3 | Seeds clarified as name-only hints for attractions/hikes/experiences the user specifically intends to include |
-| 4 | §4.3 | `en_route_stops[]` array added to AI content schema — `name`, `highway_reference`, `description`, `time_required` |
-| 5 | §4.1 | Restaurant prompt expanded: 5–6 per destination, 3+ cuisine types, 2+ price ranges, TripAdvisor sourcing |
-| 6 | §4.4 | Cultural events: `has_events` decision tree added — Format A (real events) vs Format B (honest fallback) |
-| 7 | §4.5 | Scenic drives: expanded to include viewpoints, aerial/gondola, day-trip drives; `category` field added |
 
 ---
 
@@ -332,7 +331,7 @@ Key configurable values:
 | `AZURE_OPENAI_API_KEY` | ✅ | Azure OpenAI API key |
 | `AZURE_OPENAI_DEPLOYMENT` | ✅ | Model deployment name |
 | `AZURE_OPENAI_API_VERSION` | ❌ | API version (default: `2024-02-01`) |
-| `BING_SEARCH_API_KEY` | ✅ | Bing Web Search API key |
+| `XAI_API_KEY` | ✅ | xAI Grok API key |
 | `NPS_API_KEY` | ❌ | NPS API key (default: `DEMO_KEY`, rate-limited) |
 
 ---

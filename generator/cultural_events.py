@@ -1,5 +1,5 @@
 """
-cultural_events.py — Auto-discover cultural events via Bing Web Search + AI synthesis.
+cultural_events.py — Auto-discover cultural events via Grok semantic search + AI synthesis.
 
 NEVER invents events. Uses has_events decision tree:
   Format A: real events discovered, with venue, dates, admission
@@ -9,8 +9,10 @@ Search API history:
   v1.0: Bing Search API v7 (retired August 11, 2025)
   v1.1: Google Custom Search (deprecated full-web search, unusable)
   v1.2: Brave Search API (retired in favour of Azure AI Services)
-  v1.3: Bing Web Search API — Azure AI Services (current)
-        api.bing.microsoft.com/v7.0/search
+  v1.3: Bing Web Search API (deprecated, limited availability)
+  v1.4: Google Programmable Search Engine (rate-limited, prohibitive costs)
+  v1.5: xAI Grok semantic search (current)
+        api.x.ai/v1/chat/completions
 """
 from __future__ import annotations
 import json, logging
@@ -18,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 from tenacity import retry, stop_after_attempt, wait_exponential
-from generator.bing_search import BingWebSearch
+from generator.grok_search import GrokSearch
 from generator.llm_client import MultiLLMClient
 
 logger = logging.getLogger(__name__)
@@ -34,7 +36,7 @@ class CulturalEventsDiscoverer:
         import yaml
         with Path(config_path).open() as f:
             self._config = yaml.safe_load(f)
-        self._search = BingWebSearch()
+        self._search = GrokSearch()
         self._llm = llm_client or MultiLLMClient(config_path)
         self._template = (PROMPTS_DIR / "cultural_events.txt").read_text(encoding="utf-8")
         self._system_prompt = (PROMPTS_DIR / "system_prompt.txt").read_text(encoding="utf-8")
@@ -52,7 +54,7 @@ class CulturalEventsDiscoverer:
                 f.result()
 
     def _discover_for_dest(self, dest: dict[str, Any]) -> dict[str, Any]:
-        raw_results = self._bing_search(dest["name"], dest["dates"])
+        raw_results = self._grok_search(dest["name"], dest["dates"])
         dest_type = self._classify_destination(dest["name"])
         result = self._synthesize(dest["name"], dest["dates"], dest_type, raw_results)
         # Verify any event URLs that came back
@@ -66,7 +68,7 @@ class CulturalEventsDiscoverer:
                         event.pop("url", None)
         return result
 
-    def _bing_search(self, destination: str, dates: str) -> list[dict[str, Any]]:
+    def _grok_search(self, destination: str, dates: str) -> list[dict[str, Any]]:
         month = dates.split()[0] if dates else "October"
         queries = [
             f"{destination} festivals events {month} 2026",
