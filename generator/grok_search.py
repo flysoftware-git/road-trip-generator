@@ -43,12 +43,12 @@ class GrokSearch:
     def __init__(
         self,
         api_key: str | None = None,
-        model: str = "grok-2-latest",
+        model: str | None = None,
         timeout_seconds: int = 15,
         request_delay_seconds: float = _DEFAULT_DELAY,
     ) -> None:
         self._api_key = api_key or os.environ["XAI_API_KEY"]
-        self._model = model
+        self._model = model or os.environ.get("XAI_MODEL", "grok-2-latest")
         self._timeout = timeout_seconds
         self._delay = request_delay_seconds
         self._session_local = threading.local()
@@ -96,18 +96,25 @@ class GrokSearch:
         )
 
         try:
+            payload = {
+                "model": self._model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": query},
+                ],
+                "temperature": 0.7,
+            }
+            logger.debug(f"[Grok-Attempt{attempt}] Posting to {GROK_ENDPOINT} with model={self._model}")
+            logger.debug(f"[Grok-Attempt{attempt}] API Key prefix: {self._api_key[:20]}...")
+            logger.debug(f"[Grok-Attempt{attempt}] Query: {query[:100]}")
+            
             resp = self._get_session().post(
                 GROK_ENDPOINT,
-                json={
-                    "model": self._model,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": query},
-                    ],
-                    "temperature": 0.7,
-                },
+                json=payload,
                 timeout=self._timeout,
             )
+            logger.debug(f"[Grok-Attempt{attempt}] Response Status: {resp.status_code}")
+            
             resp.raise_for_status()
             response_json = resp.json()
             content = response_json.get("choices", [{}])[0].get("message", {}).get("content", "")
@@ -133,7 +140,21 @@ class GrokSearch:
             logger.warning("Grok returned malformed JSON after retry for %r: %s", query[:60], exc)
             return []
         except requests.RequestException as exc:
-            logger.warning("Grok API error for %r: %s", query[:60], exc)
+            # Log full response body for 4xx/5xx errors
+            if hasattr(exc, 'response') and exc.response is not None:
+                try:
+                    resp_body = exc.response.text[:500]
+                    logger.warning(
+                        "Grok API error for %r (status=%s): %s | Response: %s",
+                        query[:60], 
+                        exc.response.status_code,
+                        exc,
+                        resp_body
+                    )
+                except Exception:
+                    logger.warning("Grok API error for %r: %s", query[:60], exc)
+            else:
+                logger.warning("Grok API error for %r: %s", query[:60], exc)
             return []
 
     # ── URL-resolution helper ────────────────────────────────────────────────
