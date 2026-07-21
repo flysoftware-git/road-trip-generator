@@ -80,6 +80,13 @@ class UsageTracker:
         key = f"{provider}:{model}"
         prices = self._pricing.get(key)
         if not prices:
+            # Try prefix matching for versioned model names e.g. "gpt-4o-mini-2024-07-18" → "gpt-4o-mini"
+            for pricing_key, pricing_val in self._pricing.items():
+                p, m = pricing_key.split(":", 1)
+                if p == provider and model.startswith(m):
+                    prices = pricing_val
+                    break
+        if not prices:
             return 0.0
         in_cost = (in_tokens / 1_000_000) * prices.get("input", 0.0)
         out_cost = (out_tokens / 1_000_000) * prices.get("output", 0.0)

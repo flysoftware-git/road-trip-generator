@@ -10,6 +10,12 @@ from geopy.exc import GeocoderServiceError, GeocoderTimedOut
 
 logger = logging.getLogger(__name__)
 
+# Disambiguation hints: names that Nominatim resolves to the wrong place
+# Maps destination name (lowercase) → "country/region" string to append
+GEOCODE_COUNTRY_HINTS: dict[str, str] = {
+    "santa fe": "New Mexico, USA",
+}
+
 
 class Geocoder:
     def __init__(self, user_agent: str = "RoadTripItineraryGenerator/1.0", timeout: int = 5) -> None:
@@ -25,12 +31,18 @@ class Geocoder:
             time.sleep(1.1)  # Nominatim rate limit: 1 req/sec
 
     def _geocode(self, name: str, retries: int = 2) -> tuple[float, float]:
+        # Check for disambiguation hints
+        hint = GEOCODE_COUNTRY_HINTS.get(name.lower())
+        query = f"{name}, {hint}" if hint else name
+        if hint:
+            logger.debug("Geocoder disambiguation: '%s' → '%s'", name, query)
+
         for attempt in range(retries + 1):
             try:
-                location = self.geolocator.geocode(name)
+                location = self.geolocator.geocode(query)
                 if location:
                     return location.latitude, location.longitude
-                raise ValueError(f"Nominatim returned no results for: '{name}'")
+                raise ValueError(f"Nominatim returned no results for: '{query}'")
             except (GeocoderTimedOut, GeocoderServiceError) as exc:
                 if attempt == retries:
                     raise

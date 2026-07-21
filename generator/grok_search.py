@@ -106,7 +106,7 @@ class GrokSearch:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": query},
                 ],
-                "temperature": 0.7,
+                "temperature": 0.1,
                 "response_format": {"type": "json_object"},
             }
             logger.debug(f"[Grok-Attempt{attempt}] Posting to {GROK_ENDPOINT} with model={self._model}")

@@ -155,6 +155,76 @@
         background: #FDE68A;
       }
 
+      /* ── Destination section layout ── */
+      .dest-section { background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(44,26,14,0.08); overflow: hidden; }
+      .dest-header { position: relative; min-height: 220px; background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: flex-end; padding: 1.5rem; color: #fff; }
+      .dest-header::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.1) 60%); border-radius: 0; }
+      .dest-header > * { position: relative; z-index: 1; }
+      .dest-header h2 { font-size: 2rem; font-weight: 700; margin: 0; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+      .dest-header .dates { font-size: 0.95rem; opacity: 0.9; margin: 4px 0 0; }
+      .dest-header .img-credit { font-size: 0.7rem; opacity: 0.6; margin: 2px 0 0; }
+
+      /* ── Cards ── */
+      .card { padding: 1.25rem 1.5rem; border-bottom: 1px solid #f0e8d8; }
+      .card:last-child { border-bottom: none; }
+      .card h3 { font-size: 1.05rem; font-weight: 700; color: var(--canyon); margin: 0 0 0.75rem; display: flex; align-items: center; gap: 6px; }
+      .card h3::before { content: ''; display: inline-block; width: 3px; height: 16px; background: var(--terracotta); border-radius: 2px; }
+
+      /* ── Expected environment ── */
+      .env-summary { font-size: 0.95rem; line-height: 1.65; color: #3d2b18; margin: 0 0 0.5rem; }
+      .temp-range { display: inline-block; background: #fef3c7; color: #92400e; border: 1px solid #fde68a; border-radius: 9999px; padding: 2px 12px; font-size: 0.82rem; font-weight: 600; margin: 0.25rem 0; }
+      .pack-list { font-size: 0.85rem; color: #5c4a35; margin-top: 0.4rem; }
+
+      /* ── Getting here ── */
+      .stop-card { background: #faf7f2; border: 1px solid #e8dcc8; border-radius: 8px; padding: 0.6rem 0.9rem; margin: 0.4rem 0; font-size: 0.9rem; line-height: 1.5; }
+      .time-badge { display: inline-block; background: #f0e8d8; color: #7c5a3a; border-radius: 9999px; padding: 1px 10px; font-size: 0.78rem; font-weight: 600; margin-left: 4px; }
+
+      /* ── Attractions ── */
+      .attraction-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr; gap: 0.6rem; }
+      @media (min-width: 768px) { .attraction-list { grid-template-columns: 1fr 1fr; } }
+      .attr-item { background: #faf7f2; border: 1px solid #e8dcc8; border-radius: 10px; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 4px; }
+      .attr-name { font-weight: 700; font-size: 0.95rem; color: var(--dark); }
+      .attr-name a { color: var(--terracotta); text-decoration: none; }
+      .attr-name a:hover { text-decoration: underline; }
+      .attr-desc { font-size: 0.88rem; color: #5c4a35; line-height: 1.5; }
+      .practical-note { font-size: 0.82rem; color: #7c6a55; font-style: italic; }
+      .diff-badge { background: #dcfce7; color: #15803d; font-size: 0.75rem; font-weight: 700; border-radius: 9999px; padding: 1px 8px; }
+      .dur-badge { background: #e0f2fe; color: #0369a1; font-size: 0.75rem; font-weight: 700; border-radius: 9999px; padding: 1px 8px; }
+
+      /* ── Schedule ── */
+      .schedule-list { padding: 0 0 0 1.2rem; margin: 0; font-size: 0.9rem; line-height: 1.7; color: #3d2b18; }
+      .schedule-list li { margin-bottom: 0.3rem; }
+
+      /* ── Scenic drives ── */
+      .drive-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem; }
+      .drive-link { cursor: pointer; background: #fff8f2; color: var(--terracotta); border: 1.5px solid var(--terracotta); border-radius: 9999px; padding: 5px 16px; font-size: 0.88rem; font-weight: 600; transition: all 0.15s; }
+      .drive-link:hover { background: var(--terracotta); color: #fff; }
+
+      /* ── Cultural events ── */
+      .events-intro { font-size: 0.92rem; color: #3d2b18; margin: 0 0 0.75rem; line-height: 1.6; }
+      .events-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+      .events-list li { background: #faf7f2; border: 1px solid #e8dcc8; border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.88rem; line-height: 1.55; }
+
+      /* ── Restaurants ── */
+      .restaurant-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr; gap: 0.6rem; }
+      @media (min-width: 768px) { .restaurant-list { grid-template-columns: 1fr 1fr; } }
+      .rest-item { background: #faf7f2; border: 1px solid #e8dcc8; border-radius: 10px; padding: 0.75rem 1rem; }
+      .rest-name { font-weight: 700; font-size: 0.93rem; color: var(--canyon); }
+      .rest-name a { color: var(--canyon); text-decoration: none; }
+      .rest-name a:hover { text-decoration: underline; }
+      .rest-desc { font-size: 0.86rem; color: #5c4a35; line-height: 1.5; margin-top: 3px; }
+      .cuisine-tag { display: inline-block; background: var(--sandstone); color: var(--dark); border: 1px solid #d4c4a8; border-radius: 9999px; padding: 1px 9px; font-size: 0.75rem; font-weight: 600; margin-right: 4px; }
+
+      /* ── Planning links ── */
+      .links-list { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+      .links-list li a { display: inline-flex; align-items: center; gap: 5px; background: #fff; border: 1px solid #d4c4a8; color: var(--canyon); border-radius: 9999px; padding: 4px 14px; font-size: 0.82rem; font-weight: 600; text-decoration: none; transition: background 0.15s; }
+      .links-list li a:hover { background: var(--sandstone); }
+      .local-tip { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 0.5rem 0.9rem; font-size: 0.85rem; color: #78350f; line-height: 1.55; margin-top: 0.5rem; }
+      .local-tip::before { content: '💡 '; }
+
+      /* ── En-route stops ── */
+      .en-route-stops { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.4rem; }
+
       @media print {
         .no-print { display: none !important; }
         .print-show { display: block !important; }
