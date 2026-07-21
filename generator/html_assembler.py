@@ -369,8 +369,12 @@ class HTMLAssembler:
         return html
 
     def _build_events(self, events: dict, dest_name: str) -> str:
+        import logging
+        logger = logging.getLogger(__name__)
+        
         if not events:
             return ""
+        
         html = '<div class="card events-card">\n'
         if events.get("has_events"):
             html += '<h3>Cultural Events &amp; Entertainment</h3>\n'
@@ -389,8 +393,13 @@ class HTMLAssembler:
                 )
             html += '</ul>\n'
         else:
+            # Fallback: no events found
             html += f'<h3>What to Know About {dest_name}</h3>\n'
-            html += f'<p>{events.get("honest_assessment", "")}</p>\n'
+            honest = events.get("honest_assessment", "")
+            if not honest:
+                logger.warning("No honest_assessment for '%s' (events=%s)", dest_name, events)
+                honest = "Cultural events and programming vary seasonally. Check local visitor center websites for current offerings."
+            html += f'<p>{honest}</p>\n'
             tip = events.get("local_tip", "")
             if tip:
                 html += f'<p class="local-tip"><strong>Local tip:</strong> {tip}</p>\n'
