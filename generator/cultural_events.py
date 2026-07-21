@@ -45,8 +45,19 @@ class CulturalEventsDiscoverer:
         destinations = trip.get("destinations", [])
 
         def _one(dest: dict) -> None:
-            logger.info("Discovering cultural events for '%s'…", dest["name"])
-            dest["cultural_events"] = self._discover_for_dest(dest)
+            try:
+                logger.info("Discovering cultural events for '%s'…", dest["name"])
+                result = self._discover_for_dest(dest)
+                dest["cultural_events"] = result
+                logger.info("  → Cultural events for '%s': has_events=%s, count=%d", 
+                           dest["name"], result.get("has_events", False), len(result.get("events", [])))
+            except Exception as e:
+                logger.error("Failed to discover cultural events for '%s': %s", dest["name"], e, exc_info=True)
+                # Return honest fallback on any error
+                dest["cultural_events"] = {
+                    "has_events": False,
+                    "honest_assessment": f"Unable to discover events at this time."
+                }
 
         with ThreadPoolExecutor(max_workers=min(len(destinations), 4)) as pool:
             futures = [pool.submit(_one, d) for d in destinations]
@@ -54,19 +65,29 @@ class CulturalEventsDiscoverer:
                 f.result()
 
     def _discover_for_dest(self, dest: dict[str, Any]) -> dict[str, Any]:
-        raw_results = self._grok_search(dest["name"], dest["dates"])
-        dest_type = self._classify_destination(dest["name"])
-        result = self._synthesize(dest["name"], dest["dates"], dest_type, raw_results)
-        # Verify any event URLs that came back
-        if result.get("has_events") and result.get("events"):
-            from generator.url_validator import URLValidator
-            uv = URLValidator()
-            for event in result["events"]:
-                if event.get("url"):
-                    ok, _ = uv.verify_url(event["url"])
-                    if not ok:
-                        event.pop("url", None)
-        return result
+        try:
+            raw_results = self._grok_search(dest["name"], dest["dates"])
+            dest_type = self._classify_destination(dest["name"])
+            result = self._synthesize(dest["name"], dest["dates"], dest_type, raw_results)
+            
+            # Ensure result is a dict with expected structure
+            if not isinstance(result, dict):
+                logger.warning("_synthesize returned non-dict for '%s': %s", dest["name"], type(result))
+                return {"has_events": False, "honest_assessment": "Unable to parse events."}
+            
+            # Verify any event URLs that came back
+            if result.get("has_events") and result.get("events"):
+                from generator.url_validator import URLValidator
+                uv = URLValidator()
+                for event in result["events"]:
+                    if event.get("url"):
+                        ok, _ = uv.verify_url(event["url"])
+                        if not ok:
+                            event.pop("url", None)
+            return result
+        except Exception as e:
+            logger.error("Exception in _discover_for_dest for '%s': %s", dest["name"], e, exc_info=True)
+            return {"has_events": False, "honest_assessment": "Event discovery encountered an error."}
 
     def _grok_search(self, destination: str, dates: str) -> list[dict[str, Any]]:
         month = dates.split()[0] if dates else "October"

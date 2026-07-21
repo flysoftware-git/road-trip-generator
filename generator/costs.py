@@ -27,7 +27,13 @@ def summarize_from_usage(usage: dict[str, Any]) -> tuple[float, float]:
     """Return predicted and actual costs.
 
     This pipeline currently has model pricing estimates, so actual equals predicted.
+    Debugs if usage is empty.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    if not usage:
+        logger.warning("summarize_from_usage: usage dict is empty")
     predicted = float(usage.get("total_estimated_cost_usd", 0.0) or 0.0)
     actual = predicted
+    logger.info(f"Cost summary: predicted=${predicted:.4f}, actual=${actual:.4f} (from {len(usage)} keys)")
     return predicted, actual

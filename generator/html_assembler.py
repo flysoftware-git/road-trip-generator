@@ -15,10 +15,22 @@ import html as html_escape
 import hashlib, json, logging
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
 TEMPLATE_PATH = Path(__file__).parent.parent / "templates" / "v2.5_template.html"
 CHECKSUM_PATH = Path(__file__).parent.parent / "templates" / "checksums.txt"
+
+def _path_to_file_url(path_str: str) -> str:
+    """Convert a local filesystem path to a file:// URL.
+    
+    Handles both absolute and relative paths.
+    Example: 'output\\images\\xyz.jpg' or '/full/path/to/xyz.jpg' → 'file:///C:/...' or 'file://localhost/C:/...'
+    """
+    p = Path(path_str).resolve()  # Resolve to absolute path
+    # Convert to file:// URL
+    url = p.as_uri()
+    return url
 
 def sanitize_dest_id(name: str) -> str:
     """
@@ -239,6 +251,9 @@ class HTMLAssembler:
 
     def _build_header(self, dest: dict, ai: dict, images: list) -> str:
         hero_img = images[0]["local_path"] if images else ""
+        # Convert to file:// URL for browser
+        if hero_img:
+            hero_img = _path_to_file_url(hero_img)
         credit = images[0].get("credit", "") if images else ""
         return (
             f'<div class="dest-header" style="background-image:url(\'{hero_img}\')">\n'
