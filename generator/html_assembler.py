@@ -217,17 +217,20 @@ class HTMLAssembler:
         # Header
         section += self._build_header(dest, ai, images)
 
+        # Image gallery
+        section += self._build_image_gallery(images, dest["name"])
+
         # Expected environment
         section += self._build_environment_card(ai)
 
         # Getting here + en-route stops
-        section += self._build_getting_here(ai)
+        section += self._build_getting_here(ai, dest)
 
         # Attractions
         section += self._build_attractions(ai)
 
         # Daily schedule
-        section += self._build_schedule(ai)
+        section += self._build_schedule(ai, drives, dest["name"])
 
         # Scenic drives (button row → modals built separately)
         section += self._build_drive_buttons(drives)
@@ -274,17 +277,73 @@ class HTMLAssembler:
             temp_l = env.get("temperature_low_f", "")
             pack = env.get("what_to_pack", [])
             html = '<div class="card env-card">\n'
+            html += '<div class="env-subcard">\n'
+            html += f'<h3>🧥 What to Expect</h3>\n'
             html += f'  <p class="env-summary">{summary}</p>\n'
             if temp_h or temp_l:
-                html += f'  <div class="temp-range">Temperature: {temp_h}°F/{temp_l}°F</div>\n'
+                html += f'  <div class="temp-range">🌡️ Temperature: {temp_h}°F high / {temp_l}°F low</div>\n'
             if pack:
                 html += '  <div class="pack-list">Pack: ' + ', '.join(pack) + '</div>\n'
+            html += '</div>\n'
             html += '</div>\n'
             return html
         # Fallback for string
         return f'<div class="card env-card"><p>{env}</p></div>\n'
 
-    def _build_getting_here(self, ai: dict) -> str:
+    def _build_image_gallery(self, images: list, dest_name: str) -> str:
+        """Build image gallery from discovered images."""
+        if not images or len(images) <= 1:
+            return ""
+        
+        html = '<div class="photo-gallery">\n'
+        # Skip first image (hero), render rest in gallery
+        for img in images[1:]:
+            local_path = img.get("local_path", "")
+            credit = img.get("credit", "")
+            source_url = img.get("source_url", "")
+            
+            if not local_path:
+                continue
+            
+            file_url = _path_to_file_url(local_path)
+            dest_escaped = html_escape.escape(dest_name)
+            
+            html += '  <div class="photo-item">\n'
+            if source_url:
+                html += f'    <a href="{source_url}" target="_blank" rel="noopener">\n'
+                html += f'      <img src="{file_url}" alt="{dest_escaped}" />\n'
+                html += '    </a>\n'
+            else:
+                html += f'    <img src="{file_url}" alt="{dest_escaped}" />\n'
+            
+            if credit:
+                html += f'    <p class="photo-caption">{credit}</p>\n'
+            html += '  </div>\n'
+        
+        html += '</div>\n'
+        return html
+
+    def _build_route_gmaps_url(self, dest: dict, stops: list) -> str:
+        """Build Google Maps URL with destination and waypoints."""
+        dest_lat = dest.get("lat", "")
+        dest_lng = dest.get("lng", "")
+        if not dest_lat or not dest_lng:
+            return ""
+        
+        waypoints_str = ""
+        if stops and len(stops) > 0:
+            waypoint_coords = []
+            for stop in stops[:10]:
+                stop_name = stop.get("name", "").replace(" ", "+")
+                waypoint_coords.append(stop_name)
+            if waypoint_coords:
+                waypoints_str = "&waypoints=" + "|".join(waypoint_coords)
+        
+        destination = f"{dest_lat},{dest_lng}"
+        gmaps_url = f"https://www.google.com/maps/dir/?api=1&destination={destination}{waypoints_str}&travelmode=driving"
+        return gmaps_url
+
+    def _build_getting_here(self, ai: dict, dest: dict) -> str:
         gh = ai.get("getting_here", {})
         if not gh:
             return ""
@@ -292,21 +351,56 @@ class HTMLAssembler:
         # Ensure from_text is a string, not dict
         if isinstance(from_text, dict):
             from_text = str(from_text)
+        
+        distance = gh.get("distance_miles", "")
+        drive_time = gh.get("drive_time", "")
         stops = gh.get("en_route_stops", [])
-        html = '<div class="card getting-here-card">\n'
-        html += f'  <h3>Getting Here</h3>\n  <p>{from_text}</p>\n'
+        
+        # Build Google Maps URL with waypoints
+        gmaps_url = self._build_route_gmaps_url(dest, stops)
+        
+        # Icon map for stop types
+        stop_icons = {
+            "viewpoint": "🏜️",
+            "attraction": "🏛️",
+            "town": "🏘️",
+            "food": "🍔",
+            "scenic": "🌄",
+            "natural": "🏞️",
+            "historic": "🏛️",
+        }
+        
+        html = '<div class="card getting-here-card getting-here-subcard">\n'
+        html += '  <div class="getting-here-header">\n'
+        html += '    <h3>🚗 Getting Here</h3>\n'
+        if distance and drive_time:
+            html += f'    <a href="{gmaps_url}" target="_blank" rel="noopener" class="gmaps-link">Open in Google Maps →</a>\n'
+        html += '  </div>\n'
+        
+        # Route summary with distance and time badges
+        if distance and drive_time:
+            html += '  <div class="route-badges">\n'
+            html += f'    <span class="badge badge-distance">{distance} miles</span>\n'
+            html += f'    <span class="badge badge-time">~{drive_time}</span>\n'
+            html += '  </div>\n'
+        
+        html += f'  <p class="route-summary">{from_text}</p>\n'
+        
         if stops:
+            html += '  <div class="can-miss-header">CAN\'T-MISS EN ROUTE</div>\n'
             html += '  <div class="en-route-stops">\n'
             for stop in stops:
                 url = stop.get("url", "")
+                stop_type = stop.get("type", "attraction").lower()
+                icon = stop_icons.get(stop_type, "📍")
                 name_html = (
                     f'<a href="{url}" target="_blank">{stop["name"]}</a>'
                     if url else stop["name"]
                 )
                 html += (
                     f'    <div class="stop-card">'
+                    f'<span class="stop-icon">{icon}</span>'
                     f'<strong>{name_html}</strong> — {stop.get("description", "")} '
-                    f'<span class="time-badge">{stop.get("time_required", "")}</span>'
                     f'</div>\n'
                 )
             html += '  </div>\n'
@@ -317,40 +411,108 @@ class HTMLAssembler:
         attrs = ai.get("top_attractions", [])
         if not attrs:
             return ""
-        html = '<div class="card attractions-card">\n<h3>Top Attractions</h3>\n<ul class="attraction-list">\n'
+        
+        # Icon and badge color map by type
+        type_icons = {
+            "hike": "🥾",
+            "attraction": "🏛️",
+            "viewpoint": "📍",
+            "activity": "🎯",
+            "landmark": "🗻",
+            "nature": "🌲",
+            "scenic": "🌄",
+        }
+        
+        difficulty_colors = {
+            "Easy": "badge-hike-easy",
+            "Moderate": "badge-hike-moderate",
+            "Strenuous": "badge-hike-strenuous",
+        }
+        
+        html = '<div class="card attractions-card">\n<h3>🏔️ Top Attractions</h3>\n<div class="attraction-list">\n'
         for attr in attrs:
             url = attr.get("url", "")
+            attr_type = attr.get("type", "attraction").lower()
+            icon = type_icons.get(attr_type, "📍")
+            
             name_html = (
-                f'<a href="{url}" target="_blank">{attr["name"]}</a>'
+                f'<a href="{url}" target="_blank" class="attr-link">{attr["name"]}</a>'
                 if url else attr["name"]
             )
+            
             diff = attr.get("difficulty", "")
             dur = attr.get("duration", "")
-            must = " ⭐" if attr.get("must_see") else ""
+            must = attr.get("must_see", False)
             note = attr.get("practical_note", "")
-            diff_html = f'<span class="badge diff-badge">{diff}</span>' if diff else ""
-            dur_html = f'<span class="badge dur-badge">{dur}</span>' if dur else ""
-            note_html = f'<span class="practical-note">{note}</span>' if note else ""
+            
+            diff_class = difficulty_colors.get(diff, "")
+            diff_html = f'<span class="badge {diff_class}">{diff}</span>' if diff and diff_class else ""
+            dur_html = f'<span class="badge badge-duration">{dur}</span>' if dur else ""
+            must_html = '<span class="badge badge-mustsee">Must-See</span>' if must else ""
+            note_html = f'<span class="practical-note">📌 {note}</span>' if note else ""
+            
             html += (
-                f'  <li class="attr-item">'
-                f'<span class="attr-name">{name_html}{must}</span>'
+                f'  <div class="attr-item">'
+                f'<div class="attr-header">'
+                f'<span class="attr-icon">{icon}</span>'
+                f'<span class="attr-name">{name_html}</span>'
+                f'</div>'
+                f'<div class="attr-badges">'
+                f'{must_html}'
                 f'{diff_html}'
                 f'{dur_html}'
+                f'</div>'
                 f'<span class="attr-desc">{attr.get("description", "")}</span>'
                 f'{note_html}'
-                f'</li>\n'
+                f'</div>\n'
             )
-        html += '</ul>\n</div>\n'
+        html += '</div>\n</div>\n'
         return html
 
-    def _build_schedule(self, ai: dict) -> str:
+    def _build_schedule(self, ai: dict, drives: list, dest_name: str) -> str:
         schedule = ai.get("possible_daily_schedule", [])
-        if not schedule:
-            return ""
-        html = '<div class="card schedule-card">\n<h3>Possible Daily Schedule</h3>\n<ol class="schedule-list">\n'
-        for item in schedule:
-            html += f'  <li>{item}</li>\n'
-        html += '</ol>\n</div>\n'
+        
+        # If schedule is empty or too short, synthesize from available data
+        if not schedule or (isinstance(schedule, list) and len(schedule) < 2):
+            attrs = ai.get("top_attractions", [])
+            restaurants = ai.get("dinner_recommendations", [])
+            
+            if attrs and len(attrs) > 0:
+                schedule = [
+                    f"🌅 Morning: Start with {attrs[0]['name']}; plan for 2–3 hours.",
+                    f"☀️ Afternoon: Continue with {attrs[1]['name'] if len(attrs) > 1 else 'exploration'}.",
+                    f"🌙 Evening: Dinner reservation recommended; end with sunset viewing if possible.",
+                ]
+            else:
+                return ""
+        
+        html = '<div class="card schedule-card">\n<h3>⏰ Possible Daily Schedule</h3>\n'
+        
+        # Render as periods (morning/afternoon/evening)
+        period_emojis = {"morning": "🌅", "afternoon": "☀️", "evening": "🌙"}
+        
+        if isinstance(schedule, dict):
+            # Dict with morning/afternoon/evening keys
+            html += '<div class="schedule-periods">\n'
+            for period in ["morning", "afternoon", "evening"]:
+                content = schedule.get(period, "")
+                if content:
+                    emoji = period_emojis.get(period, "")
+                    html += f'  <div class="schedule-period">\n'
+                    html += f'    <div class="schedule-time"><span class="schedule-icon">{emoji}</span> {period.title()}</div>\n'
+                    html += f'    <div class="schedule-content">{content}</div>\n'
+                    html += f'  </div>\n'
+            html += '</div>\n'
+        else:
+            # List of schedule items
+            html += '<ol class="schedule-list">\n'
+            for i, item in enumerate(schedule):
+                emoji_idx = i % 3
+                emojis = ["🌅", "☀️", "🌙"]
+                html += f'  <li><span class="schedule-icon">{emojis[emoji_idx]}</span> {item}</li>\n'
+            html += '</ol>\n'
+        
+        html += '</div>\n'
         return html
 
     def _build_drive_buttons(self, drives: list) -> str:
@@ -377,24 +539,36 @@ class HTMLAssembler:
         
         html = '<div class="card events-card">\n'
         if events.get("has_events"):
-            html += '<h3>Cultural Events &amp; Entertainment</h3>\n'
+            html += '<h3>🎭 Cultural Events &amp; Entertainment</h3>\n'
             html += f'<p class="events-intro">{events.get("intro", "")}</p>\n'
-            html += '<ul class="events-list">\n'
+            html += '<div class="events-list">\n'
             for ev in events.get("events", []):
                 url = ev.get("url", "")
                 name_html = (
-                    f'<a href="{url}" target="_blank">{ev.get("name", "")}</a>'
+                    f'<a href="{url}" target="_blank" class="event-link">{ev.get("name", "")}</a>'
                     if url else ev.get("name", "")
                 )
+                date_str = ev.get("date", "")
+                venue_str = ev.get("venue", "")
+                admission_str = ev.get("admission", "")
+                ambient = ev.get("ambient_scene", "")
+                
                 html += (
-                    f'  <li><strong>{name_html}</strong> — {ev.get("date", "")}, '
-                    f'{ev.get("venue", "")}. {ev.get("admission", "")} '
-                    f'<em>{ev.get("ambient_scene", "")}</em></li>\n'
+                    f'  <div class="event-item">\n'
+                    f'    <div class="events-subcard">\n'
+                    f'      <strong>{name_html}</strong><br/>\n'
+                    f'      <span class="events-date-range">{date_str}</span><br/>\n'
+                    f'      📍 {venue_str}<br/>\n'
+                    f'      💵 {admission_str}\n'
+                    f'    </div>\n'
                 )
-            html += '</ul>\n'
+                if ambient:
+                    html += f'    <em class="ambient-scene">{ambient}</em>\n'
+                html += '  </div>\n'
+            html += '</div>\n'
         else:
             # Fallback: no events found
-            html += f'<h3>What to Know About {dest_name}</h3>\n'
+            html += f'<h3>🎭 What to Know About {dest_name}</h3>\n'
             honest = events.get("honest_assessment", "")
             if not honest:
                 logger.warning("No honest_assessment for '%s' (events=%s)", dest_name, events)
@@ -402,7 +576,7 @@ class HTMLAssembler:
             html += f'<p>{honest}</p>\n'
             tip = events.get("local_tip", "")
             if tip:
-                html += f'<p class="local-tip"><strong>Local tip:</strong> {tip}</p>\n'
+                html += f'<p class="local-tip"><strong>💡 Local tip:</strong> {tip}</p>\n'
         html += '</div>\n'
         return html
 
@@ -410,7 +584,7 @@ class HTMLAssembler:
         rests = ai.get("dinner_recommendations", [])
         if not rests:
             return ""
-        html = '<div class="card restaurants-card">\n<h3>Dinner Recommendations</h3>\n<ul class="restaurant-list">\n'
+        html = '<div class="card restaurants-card">\n<h3>🍽️ Dinner Recommendations</h3>\n<div class="restaurant-list">\n'
         for rest in rests:
             url = rest.get("url", "")
             name_html = (
@@ -420,17 +594,35 @@ class HTMLAssembler:
             price = rest.get("price", "")
             cuisine = rest.get("cuisine", "")
             desc = rest.get("description", "")
-            price_html = f'<span class="badge price-badge">{price}</span>' if price else ""
-            cuisine_html = f'<span class="cuisine-tag">{cuisine}</span>' if cuisine else ""
+            reserve = rest.get("reserve_recommended", False)
+            
+            # Price badge (convert $ symbols to count or keep as-is)
+            price_badge = ""
+            if price:
+                # Normalize to $/$$/$$$/$$$$
+                price_normalized = str(price).replace("USD", "").strip()
+                price_badge = f'<span class="badge badge-price">{price_normalized}</span>'
+            
+            # Cuisine badge
+            cuisine_badge = f'<span class="badge cuisine-badge">{cuisine}</span>' if cuisine else ""
+            
+            # Reserve recommendation badge
+            reserve_badge = '<span class="badge badge-reserve">Reservations Recommended</span>' if reserve else ""
+            
             html += (
-                f'  <li class="rest-item">'
-                f'<span class="rest-name">{name_html}</span>'
-                f'{price_html}'
-                f'{cuisine_html}'
-                f'<span class="rest-desc">{desc}</span>'
-                f'</li>\n'
+                f'  <div class="rest-item">\n'
+                f'    <div class="rest-header">\n'
+                f'      <span class="rest-name">{name_html}</span>\n'
+                f'    </div>\n'
+                f'    <div class="rest-badges">\n'
+                f'      {cuisine_badge}\n'
+                f'      {price_badge}\n'
+                f'      {reserve_badge}\n'
+                f'    </div>\n'
+                f'    <span class="rest-desc">{desc}</span>\n'
+                f'  </div>\n'
             )
-        html += '</ul>\n</div>\n'
+        html += '</div>\n</div>\n'
         return html
 
     def _build_planning_links(self, links: list, nps_code: str | None, dest: dict) -> str:
