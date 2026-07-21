@@ -252,6 +252,21 @@ class HTMLAssembler:
         env = ai.get("expected_environment", "")
         if not env:
             return ""
+        # Handle dict structure: {"summary": "...", "temperature_high_f": 72, ...}
+        if isinstance(env, dict):
+            summary = env.get("summary", "")
+            temp_h = env.get("temperature_high_f", "")
+            temp_l = env.get("temperature_low_f", "")
+            pack = env.get("what_to_pack", [])
+            html = '<div class="card env-card">\n'
+            html += f'  <p class="env-summary">{summary}</p>\n'
+            if temp_h or temp_l:
+                html += f'  <div class="temp-range">Temperature: {temp_h}°F/{temp_l}°F</div>\n'
+            if pack:
+                html += '  <div class="pack-list">Pack: ' + ', '.join(pack) + '</div>\n'
+            html += '</div>\n'
+            return html
+        # Fallback for string
         return f'<div class="card env-card"><p>{env}</p></div>\n'
 
     def _build_getting_here(self, ai: dict) -> str:
@@ -259,6 +274,9 @@ class HTMLAssembler:
         if not gh:
             return ""
         from_text = gh.get("from_previous", "")
+        # Ensure from_text is a string, not dict
+        if isinstance(from_text, dict):
+            from_text = str(from_text)
         stops = gh.get("en_route_stops", [])
         html = '<div class="card getting-here-card">\n'
         html += f'  <h3>Getting Here</h3>\n  <p>{from_text}</p>\n'
