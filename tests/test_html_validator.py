@@ -21,13 +21,13 @@ SAMPLE_TRIP = {
     ]
 }
 
-DRIVE_KEY = "Zion_Canyon_Scenic_Drive"
+DRIVE_KEY = "Zion Canyon Scenic Drive"
 
 VALID_HTML = f"""<!DOCTYPE html>
 <html>
 <head><title>Test</title></head>
 <body>
-<section id="zion" class="destination-section">
+<section id="section-zion" class="destination-section">
   <div class="dest-header">
     <div class="inner"></div>
   </div>
@@ -35,7 +35,7 @@ VALID_HTML = f"""<!DOCTYPE html>
 <script>
 var DRIVE_DESCRIPTIONS = {json.dumps({DRIVE_KEY: {"title": "Zion Canyon Scenic Drive"}})};
 </script>
-<div data-drive-key="{DRIVE_KEY}"></div>
+<button class="drive-link" data-drive-title="{DRIVE_KEY}"></button>
 </body>
 </html>"""
 
@@ -96,8 +96,8 @@ def test_image_count_below_min_flagged(tmp_path):
 
 def test_div_imbalance_flagged(tmp_path):
     bad_html = VALID_HTML.replace(
-        '<section id="zion" class="destination-section">\n  <div class="dest-header">\n    <div class="inner"></div>\n  </div>\n</section>',
-        '<section id="zion" class="destination-section">\n  <div class="dest-header">\n    <div class="inner">\n  </div>\n</section>'
+        '<section id="section-zion" class="destination-section">\n  <div class="dest-header">\n    <div class="inner"></div>\n  </div>\n</section>',
+        '<section id="section-zion" class="destination-section">\n  <div class="dest-header">\n    <div class="inner">\n  </div>\n</section>'
     )
     p = _write_html(tmp_path, bad_html)
     v = _make_validator(tmp_path)
@@ -107,8 +107,8 @@ def test_div_imbalance_flagged(tmp_path):
 
 def test_orphan_script_in_section_warns(tmp_path):
     bad_html = VALID_HTML.replace(
-        '<section id="zion" class="destination-section">',
-        '<section id="zion" class="destination-section"><script>alert(1)</script>'
+        '<section id="section-zion" class="destination-section">',
+        '<section id="section-zion" class="destination-section"><script>alert(1)</script>'
     )
     p = _write_html(tmp_path, bad_html)
     v = _make_validator(tmp_path)

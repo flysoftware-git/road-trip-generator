@@ -4,12 +4,14 @@ Destination:    {destination_name}
 Travel dates:   {dates}
 Trip title:     {trip_title}
 Previous stop:  {previous_destination}
+Next stop:      {next_destination}
+Budget:         {budget_guidance}
 Seeds (attractions the traveler specifically intends to visit — include ALL of
        these, do not omit any, and add further recommendations around them):
   {seeds}
 
 ════════════════════════════════════════════════════════
-Return a JSON object with EXACTLY this structure.
+          "summary": "Name the specific place and the sequencing logic. Do NOT start with a clock time or embed time-of-day timestamps. Keep it to one or two sentences. For Day 1, account for arrival drive from previous stop."
 All string values follow the voice and style rules in the system prompt.
 ════════════════════════════════════════════════════════
 
@@ -42,10 +44,12 @@ All string values follow the voice and style rules in the system prompt.
         "description": "One sentence: what it is and why it earns a stop. Be
           specific — name the waterfall height, the pie, the trail distance,
           the geological feature. Give a reason, not just a label.",
-        "time_required": "e.g. 20-min pull-out | allow 2 hrs | worth a full hour"
+        "time_required": "e.g. 20-min pull-out | allow 2 hrs | worth a full hour",
+        "detour_distance_miles": "numeric miles off main route (0 if directly on route)",
+        "detour_time_minutes": "numeric extra drive minutes (0 if directly on route)"
       }}
     ]
-  }},
+          "summary": "Sunset viewpoint, stargazing, or dinner transition. If you mention dinner, name one restaurant from dinner_recommendations exactly. No vague 'enjoy dinner nearby' phrasing. On the final day, account for preparing for onward drive to next stop."
 
   "top_attractions": [
     {{
@@ -68,16 +72,25 @@ All string values follow the voice and style rules in the system prompt.
     }}
   ],
 
-  "possible_daily_schedule": {{
-    "morning": "Name specific locations with realistic clock times, e.g.
-      '7:00am — start Angels Landing before heat and crowds build; chains
-      section typically has 15-min waits by 9am'. Explain the pacing logic,
-      not just the activity list.",
-    "afternoon": "Continue with specific places and realistic transitions.
-      Include drive times between sites where relevant. Name the roads.",
-    "evening": "Wind-down activity, sunset viewpoint, or dinner transition.
-      Note sunset time for the month if relevant to the activity choice."
-  }},
+  "possible_daily_schedule": [
+    {{
+      "day_label": "Day 1",
+      "periods": [
+        {{
+          "period": "Morning",
+          "summary": "Name the specific place and the sequencing logic. Do NOT start with a clock time or embed time-of-day timestamps. Keep it to one or two sentences."
+        }},
+        {{
+          "period": "Afternoon",
+          "summary": "Continue with a realistic next stop, including road or transition context where useful. No clock times."
+        }},
+        {{
+          "period": "Evening",
+          "summary": "Sunset viewpoint, stargazing, or dinner transition. If you mention dinner, name one restaurant from dinner_recommendations exactly. No vague 'enjoy dinner nearby' phrasing."
+        }}
+      ]
+    }}
+  ],
 
   "dinner_recommendations": [
     {{
@@ -100,20 +113,25 @@ top_attractions:
   - Include ALL seeds listed above without exception
   - Add further items to reach 6–8 total
   - Include at least one viewpoint (type: viewpoint) where geographically apt
-  - must_see: true for no more than 3 items per destination — be selective;
+  - must_see: true for no more than 2 items per destination — be selective;
     if everything is must_see, nothing is
+  - Reserve must_see for the genuinely defining stops of the destination, not every strong option
 
 en_route_stops:
   - Include 2–4 stops for all destinations except the first on the itinerary
   - For the first destination where previous_destination = "none", return []
   - All stops must be real, named places verifiably on the stated route
+  - For each stop, include detour_distance_miles and detour_time_minutes
+    (use 0 when there is no detour)
   - At least one stop must be actionable (a short trail, a specific viewpoint,
     a notable food stop) — not merely a town name to pass through
 
 dinner_recommendations:
-  - Include 5–6 restaurants total
+  - Include 4–6 restaurants total
   - Span at least 3 distinct cuisine types
   - Span at least 2 price tiers: at least one at $ or $$ AND at least one at $$$ or $$$$
+  - Respect the budget guidance above when selecting the center-of-gravity of options
+    (e.g., mostly $$ for moderate budget, mostly $$$ for premium budget)
   - Include at least one recognisably casual / local option ($ or $$)
   - Include at least one higher-end option ($$$ or $$$$)
   - For remote national park destinations with few in-park options, include
@@ -130,3 +148,5 @@ STRICT PROHIBITIONS
   world-class, charming, picturesque, vibrant, lively, majestic, spectacular
 - DO NOT describe how a traveler will feel — describe what they will
   see, hear, do, and need to know logistically
+- DO NOT lead schedule summaries with clock times like '7:00am —'
+- DO NOT mention towns or dinner venues in the schedule unless they appear in dinner_recommendations

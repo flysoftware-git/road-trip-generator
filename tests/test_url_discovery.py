@@ -77,7 +77,7 @@ def test_restaurant_discovery_two_pass():
 
     call_log = []
 
-    def fake_search(variants, site_filter=None, site_hint=""):
+    def fake_search(variants, site_filter=None, site_hint="", **_kwargs):
         call_log.append(site_filter)
         if site_filter == "google.com/maps":
             return None  # First pass fails
@@ -97,3 +97,31 @@ def test_restaurant_discovery_two_pass():
     assert "google.com/maps" in call_log
     assert "tripadvisor.com" in call_log
     assert ai["dinner_recommendations"][0]["url"] == "https://www.tripadvisor.com/Restaurant_Test"
+
+
+def test_alltrails_trail_url_bypasses_liveness_check():
+    discoverer = URLDiscoverer.__new__(URLDiscoverer)
+
+    url = "https://www.alltrails.com/trail/us/utah/navajo-loop-trail"
+    assert discoverer._is_alltrails_trail_url(url)
+    assert discoverer._is_relevant_result(url, "Navajo Loop Trail", "Bryce Canyon National Park")
+
+
+def test_search_strict_accepts_alltrails_trail_without_verify_url():
+    discoverer = URLDiscoverer.__new__(URLDiscoverer)
+    discoverer._search = MagicMock()
+    discoverer._url_validator = MagicMock()
+    discoverer._search.search.return_value = [
+        {"url": "https://www.alltrails.com/trail/us/utah/navajo-loop-trail"}
+    ]
+
+    result = discoverer._search_first_strict(
+        query_variants=['"Navajo Loop Trail" Bryce Canyon National Park trail hiking'],
+        site_filter="alltrails.com",
+        site_hint=None,
+        item_name="Navajo Loop Trail",
+        dest_name="Bryce Canyon National Park",
+    )
+
+    assert result == "https://www.alltrails.com/trail/us/utah/navajo-loop-trail"
+    discoverer._url_validator.verify_url.assert_not_called()

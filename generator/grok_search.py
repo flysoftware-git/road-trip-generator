@@ -32,6 +32,56 @@ _DEFAULT_DELAY = 0.05
 _GROK_SEMAPHORE = threading.Semaphore(4)
 
 
+def _extract_json_object(text: str) -> dict[str, Any]:
+    raw = (text or "").strip()
+    if not raw:
+        raise ValueError("LLM returned empty response")
+
+    if raw.startswith("```"):
+        lines = [line for line in raw.splitlines() if not line.strip().startswith("```")]
+        raw = "\n".join(lines).strip()
+
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict):
+            return parsed
+        raise ValueError("LLM response was not a JSON object")
+    except json.JSONDecodeError:
+        pass
+
+    start = raw.find("{")
+    if start == -1:
+        raise ValueError("LLM response does not contain a JSON object")
+
+    depth = 0
+    in_str = False
+    esc = False
+    for idx in range(start, len(raw)):
+        ch = raw[idx]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+
+        if ch == '"':
+            in_str = True
+        elif ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                parsed = json.loads(raw[start:idx + 1])
+                if isinstance(parsed, dict):
+                    return parsed
+                raise ValueError("LLM response was not a JSON object")
+
+    raise ValueError("Unable to extract a complete JSON object from LLM response")
+
+
 class GrokSearch:
     """
     Thread-safe xAI Grok-based search provider.
@@ -50,12 +100,16 @@ class GrokSearch:
         model: str | None = None,
         timeout_seconds: int = 15,
         request_delay_seconds: float = _DEFAULT_DELAY,
+        usage_tracker: Any | None = None,
+        usage_operation_prefix: str = "grok_search",
     ) -> None:
         self._api_key = api_key or os.environ["XAI_API_KEY"]
         self._model = model or os.environ.get("XAI_MODEL", "grok-2-latest")
         self._timeout = timeout_seconds
         self._delay = request_delay_seconds
         self._session_local = threading.local()
+        self._usage_tracker = usage_tracker
+        self._usage_operation_prefix = usage_operation_prefix
 
     # ── Thread-local session ─────────────────────────────────────────────────
 
@@ -125,8 +179,21 @@ class GrokSearch:
             response_json = resp.json()
             content = response_json.get("choices", [{}])[0].get("message", {}).get("content", "")
 
+            usage = response_json.get("usage", {})
+            if self._usage_tracker and isinstance(usage, dict):
+                prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
+                completion_tokens = int(usage.get("completion_tokens", 0) or 0)
+                if prompt_tokens or completion_tokens:
+                    self._usage_tracker.add(
+                        provider="grok",
+                        model=self._model,
+                        operation=f"{self._usage_operation_prefix}:search",
+                        prompt_tokens=prompt_tokens,
+                        completion_tokens=completion_tokens,
+                    )
+
             # Parse JSON from Grok response
-            parsed = json.loads(content)
+            parsed = _extract_json_object(content)
             results = parsed.get("results", [])
 
             # Normalize to {name, snippet, url} format

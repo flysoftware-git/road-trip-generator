@@ -24,6 +24,27 @@ MANIFEST_SCHEMA: dict[str, Any] = {
                 "title": {"type": "string"},
                 "subtitle": {"type": "string"},
                 "theme_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+                "budget": {
+                    "description": "Optional budget guidance consumed by content generation.",
+                    "oneOf": [
+                        {"type": "string"},
+                        {"type": "number"},
+                        {
+                            "type": "object",
+                            "additionalProperties": {
+                                "oneOf": [{"type": "string"}, {"type": "number"}, {"type": "boolean"}]
+                            },
+                        },
+                    ],
+                },
+                "departure": {
+                    "type": "string",
+                    "description": "Optional trip starting point used for full-route directions and first destination getting-here context.",
+                },
+                "return": {
+                    "type": "string",
+                    "description": "Optional trip endpoint after the final destination for full-route directions.",
+                },
                 "llm_provider": {
                     "type": "string",
                     "enum": ["openai", "anthropic", "deepseek", "gemini", "grok", "azure_openai"],

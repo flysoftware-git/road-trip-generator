@@ -16,7 +16,9 @@ Search API history:
 """
 from __future__ import annotations
 import json, logging
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -36,8 +38,11 @@ class CulturalEventsDiscoverer:
         import yaml
         with Path(config_path).open() as f:
             self._config = yaml.safe_load(f)
-        self._search = GrokSearch()
         self._llm = llm_client or MultiLLMClient(config_path)
+        self._search = GrokSearch(
+            usage_tracker=self._llm.usage_tracker,
+            usage_operation_prefix="cultural_events",
+        )
         self._template = (PROMPTS_DIR / "cultural_events.txt").read_text(encoding="utf-8")
         self._system_prompt = (PROMPTS_DIR / "system_prompt.txt").read_text(encoding="utf-8")
 
@@ -84,6 +89,8 @@ class CulturalEventsDiscoverer:
                         ok, _ = uv.verify_url(event["url"])
                         if not ok:
                             event.pop("url", None)
+
+            result = self._sanitize_local_tip_by_itinerary_days(result, dest.get("dates", ""))
             return result
         except Exception as e:
             logger.error("Exception in _discover_for_dest for '%s': %s", dest["name"], e, exc_info=True)
@@ -110,6 +117,113 @@ class CulturalEventsDiscoverer:
         if any(k in lower for k in ("santa fe", "albuquerque", "denver", "phoenix")):
             return "city"
         return "small_town"
+
+    def _sanitize_local_tip_by_itinerary_days(self, result: dict[str, Any], dates: str) -> dict[str, Any]:
+        if not isinstance(result, dict) or result.get("has_events"):
+            return result
+
+        tip = str(result.get("local_tip", "") or "").strip()
+        if not tip:
+            return result
+
+        mentioned_days = self._extract_mentioned_weekdays(tip)
+        if not mentioned_days:
+            return result
+
+        trip_days = self._extract_trip_weekdays(dates)
+        # If we cannot determine trip weekdays with confidence, omit weekday-specific tips.
+        if not trip_days:
+            result.pop("local_tip", None)
+            return result
+
+        # Omit tips that reference any weekday not present in the itinerary window.
+        if not mentioned_days.issubset(trip_days):
+            result.pop("local_tip", None)
+        return result
+
+    def _extract_mentioned_weekdays(self, text: str) -> set[str]:
+        day_tokens = {
+            "monday": "monday",
+            "mon": "monday",
+            "tuesday": "tuesday",
+            "tue": "tuesday",
+            "tues": "tuesday",
+            "wednesday": "wednesday",
+            "wed": "wednesday",
+            "thursday": "thursday",
+            "thu": "thursday",
+            "thurs": "thursday",
+            "friday": "friday",
+            "fri": "friday",
+            "saturday": "saturday",
+            "sat": "saturday",
+            "sunday": "sunday",
+            "sun": "sunday",
+        }
+        words = re.findall(r"[A-Za-z]+", text.lower())
+        result = {day_tokens[w] for w in words if w in day_tokens}
+
+        if "weekend" in words or "weekends" in words:
+            result.update({"saturday", "sunday"})
+        return result
+
+    def _extract_trip_weekdays(self, dates: str) -> set[str]:
+        parsed = self._parse_date_range(dates)
+        if not parsed:
+            return set()
+        start_date, end_date = parsed
+        names = [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+        ]
+        out: set[str] = set()
+        cursor = start_date
+        while cursor <= end_date:
+            out.add(names[cursor.weekday()])
+            cursor += timedelta(days=1)
+        return out
+
+    def _parse_date_range(self, dates: str) -> tuple[datetime, datetime] | None:
+        if not dates:
+            return None
+
+        normalized = dates.replace("–", "-")
+        m = re.search(
+            r"([A-Za-z]+)\s+(\d{1,2})(?:\s*-\s*(\d{1,2}))?,\s*(\d{4})",
+            normalized,
+        )
+        if m:
+            month_name = m.group(1)
+            day_start = int(m.group(2))
+            day_end = int(m.group(3) or m.group(2))
+            year = int(m.group(4))
+            try:
+                start = datetime.strptime(f"{month_name} {day_start} {year}", "%B %d %Y")
+                end = datetime.strptime(f"{month_name} {day_end} {year}", "%B %d %Y")
+            except ValueError:
+                return None
+            if end < start:
+                return None
+            return start, end
+
+        # Support explicit start/end dates like "2026-10-07 to 2026-10-09".
+        iso = re.findall(r"(\d{4}-\d{2}-\d{2})", normalized)
+        if len(iso) >= 2:
+            try:
+                start = datetime.strptime(iso[0], "%Y-%m-%d")
+                end = datetime.strptime(iso[1], "%Y-%m-%d")
+            except ValueError:
+                return None
+            if end < start:
+                return None
+            return start, end
+
+        return None
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, min=2, max=30))
     def _synthesize(

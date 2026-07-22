@@ -40,6 +40,20 @@ class NPSResolver:
         query = re.sub(
             "|".join(NPS_KEYWORDS), "", name, flags=re.IGNORECASE
         ).strip()[:40]
+        target = re.sub(r"\s+", " ", name.lower()).strip()
+
+        def _score(candidate_name: str) -> int:
+            c = candidate_name.lower()
+            score = 0
+            if target == c:
+                score += 100
+            for token in re.findall(r"[a-z0-9]+", target):
+                if len(token) > 2 and token in c:
+                    score += 4
+            if "national park" in c:
+                score += 3
+            return score
+
         try:
             resp = self.session.get(
                 f"{NPS_API_BASE}/parks",
@@ -49,7 +63,8 @@ class NPSResolver:
             resp.raise_for_status()
             parks = resp.json().get("data", [])
             if parks:
-                return parks[0].get("parkCode")
+                best = max(parks, key=lambda p: _score(p.get("fullName", "")))
+                return best.get("parkCode")
         except requests.RequestException as exc:
             logger.warning("NPS API error for '%s': %s", name, exc)
         return None

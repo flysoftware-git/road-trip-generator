@@ -80,3 +80,53 @@ def test_build_thumb_url_md5(tmp_path):
     expected_path_prefix = f"thumb/{h[:1]}/{h[:2]}/{filename}/{960}px-{filename}"
     # Just verify the hash logic is consistent
     assert h == hashlib.md5(b"Zion_Canyon.jpg").hexdigest()
+
+
+def test_rank_images_penalizes_marine_mismatch_for_capitol_reef(tmp_path):
+    fetcher = _make_fetcher(tmp_path)
+    images = [
+        {
+            "url": "https://example.com/coral-reef-underwater.jpg",
+            "title": "Coral reef underwater scene",
+            "credit": "Photographer",
+            "source": "unsplash",
+        },
+        {
+            "url": "https://example.com/capitol-reef-utah-canyon.jpg",
+            "title": "Capitol Reef Utah canyon landscape",
+            "credit": "Photographer",
+            "source": "unsplash",
+        },
+    ]
+
+    ranked = fetcher._rank_images_for_destination(images, "Capitol Reef National Park")
+    assert ranked
+    assert "capitol-reef-utah-canyon" in ranked[0]["url"]
+
+
+def test_destination_image_profile_marks_marine_terms_negative_for_inland_parks():
+    profile = ImageFetcher._destination_image_profile("Zion National Park, Utah")
+    assert "coral" in profile["negative"]
+    assert "underwater" in profile["negative"]
+
+
+def test_rank_images_prefers_scenery_over_wildlife_when_available(tmp_path):
+    fetcher = _make_fetcher(tmp_path)
+    images = [
+        {
+            "url": "https://example.com/bryce-bird-perch.jpg",
+            "title": "Bird perched at Bryce",
+            "credit": "NPS",
+            "source": "nps",
+        },
+        {
+            "url": "https://example.com/bryce-canyon-hoodoos-landscape.jpg",
+            "title": "Bryce Canyon hoodoos landscape",
+            "credit": "NPS",
+            "source": "nps",
+        },
+    ]
+
+    ranked = fetcher._rank_images_for_destination(images, "Bryce Canyon National Park")
+    assert ranked
+    assert "hoodoos-landscape" in ranked[0]["url"]

@@ -61,6 +61,7 @@ def _setup_logging(verbose: bool) -> None:
 @click.option("--skip-images", is_flag=True, help="Skip image fetching")
 @click.option("--skip-events", is_flag=True, help="Skip cultural events discovery")
 @click.option("--skip-url-discovery", is_flag=True, help="Skip URL discovery")
+@click.option("--noschedule", is_flag=True, help="Suppress schedule card rendering in output HTML")
 @click.option("--destination", "destinations", multiple=True, help="Limit to specific destination ids")
 @click.option("--verbose", is_flag=True, help="Enable debug logging")
 def main(
@@ -75,6 +76,7 @@ def main(
     skip_images: bool,
     skip_events: bool,
     skip_url_discovery: bool,
+    noschedule: bool,
     destinations: tuple[str, ...],
     verbose: bool,
 ) -> None:
@@ -100,7 +102,6 @@ def main(
             from dotenv import load_dotenv
             load_dotenv(env_file)
             click.echo(f"   EnvFile  : loaded from {env_file}")
-            click.echo(f"DEBUG: OPENAI_API_KEY after dotenv = {os.environ.get('OPENAI_API_KEY')}")
         except Exception as exc:
             click.echo(f"   EnvFile  : failed to load ({exc})", err=True)
 
@@ -160,6 +161,18 @@ def main(
         lat, lng = geo._geocode(dest["name"])
         dest["lat"] = lat
         dest["lng"] = lng
+
+    # Optional departure/return geocoding for full-route maps and first-card routing context.
+    departure_name = trip.get("trip", {}).get("departure")
+    return_name = trip.get("trip", {}).get("return")
+    if departure_name:
+        dlat, dlng = geo._geocode(departure_name)
+        trip["trip"]["departure_lat"] = dlat
+        trip["trip"]["departure_lng"] = dlng
+    if return_name:
+        rlat, rlng = geo._geocode(return_name)
+        trip["trip"]["return_lat"] = rlat
+        trip["trip"]["return_lng"] = rlng
     # NPS resolution is independent — run in parallel
     def _resolve_nps(dest: dict) -> None:
         dest["nps_park_code"] = nps.resolve(dest["name"])
@@ -219,6 +232,12 @@ def main(
 
     ai_gen = AIContentGenerator(config_path, llm_client=llm_client)
     ai_gen.generate_all(trip)
+
+    if noschedule:
+        for dest in trip.get("destinations", []):
+            if "ai_content" in dest and isinstance(dest["ai_content"], dict):
+                dest["ai_content"]["possible_daily_schedule"] = []
+
     click.echo(f"  ✓ AI content generated for {len(trip['destinations'])} destination(s)")
 
     # ── Stages 4 + 5a + 5b: run concurrently (all independent of each other) ─
@@ -237,7 +256,7 @@ def main(
         if not skip_images:
             click.echo("Stage 5/6 — Fetching images…")
             from generator.image_fetcher import ImageFetcher
-            ImageFetcher(config_path).fetch_all(trip)
+            ImageFetcher(config_path, output_dir=output_dir / "images").fetch_all(trip)
             total = sum(len(d.get("images", [])) for d in trip["destinations"])
             click.echo(f"  ✓ {total} images fetched")
         else:
@@ -249,7 +268,7 @@ def main(
         if not skip_url_discovery:
             click.echo("Stage 5b — URL discovery…")
             from generator.url_discovery import URLDiscoverer
-            URLDiscoverer(config_path).discover_all(trip)
+            URLDiscoverer(config_path, llm_client=llm_client).discover_all(trip)
             click.echo("  ✓ URLs discovered and verified")
         else:
             click.echo("Stage 5b — URL discovery SKIPPED")
@@ -299,6 +318,15 @@ def main(
         actual_usd=actual_cost,
         environment=environment_selected,
     )
+    usage_models = trip.get("_meta", {}).get("llm", {}).get("usage", {}).get("models", [])
+    if usage_models:
+        click.echo("  Usage breakdown by provider/model:")
+        for row in usage_models:
+            click.echo(
+                f"    - {row.get('provider')}/{row.get('model')}: "
+                f"calls={row.get('calls', 0)} tokens={row.get('total_tokens', 0)} "
+                f"est=${row.get('estimated_cost_usd', 0.0):.4f}"
+            )
 
     if not report["valid"]:
         click.echo(f"\n⚠️  {report['error_count']} validation error(s) found:", err=True)

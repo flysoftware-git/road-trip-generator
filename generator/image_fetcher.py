@@ -15,6 +15,7 @@ import hashlib, logging, mimetypes, os, threading, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
 from pathlib import Path
+import re
 from typing import Any
 from openai import images
 import requests
@@ -30,7 +31,7 @@ REQUEST_DELAY = 1.5
 
 
 class ImageFetcher:
-    def __init__(self, config_path: str | Path = "config.yaml") -> None:
+    def __init__(self, config_path: str | Path = "config.yaml", output_dir: str | Path | None = None) -> None:
         import yaml
         with Path(config_path).open() as f:
             cfg = yaml.safe_load(f)
@@ -38,7 +39,10 @@ class ImageFetcher:
         images_cfg = cfg.get("images", {})
         self._min_per_dest = images_cfg.get("min_per_destination", 2)
         self._max_per_dest = images_cfg.get("max_per_destination", 4)
-        self._output_dir = Path("output/images")
+        if output_dir is None:
+            self._output_dir = Path("output/images")
+        else:
+            self._output_dir = Path(output_dir)
         self._output_dir.mkdir(parents=True, exist_ok=True)
         self._session_local = threading.local()
 
@@ -74,6 +78,7 @@ class ImageFetcher:
 
     def _fetch_for_dest(self, dest: dict[str, Any]) -> list[dict[str, Any]]:
         images: list[dict[str, Any]] = []
+        dest_name = str(dest.get("name", "") or "")
 
         # Source 1: NPS API
         if dest.get("nps_park_code"):
@@ -88,6 +93,8 @@ class ImageFetcher:
         if len(images) < self._max_per_dest:
             remaining = self._max_per_dest - len(images)
             images.extend(self._fetch_from_wikimedia(dest["name"], limit=remaining + 2))
+
+        images = self._rank_images_for_destination(images, dest_name)
 
         # Verify and deduplicate
         verified: list[dict[str, Any]] = []
@@ -109,6 +116,7 @@ class ImageFetcher:
             query = fallback_queries[attempt % len(fallback_queries)]
             logger.warning("  Image fallback attempt %d for '%s': '%s'", attempt + 1, dest["name"], query)
             extra = self._fetch_from_wikimedia(query, limit=4)
+            extra = self._rank_images_for_destination(extra, dest_name)
             for img in extra:
                 if img.get("url") and img["url"] not in seen_urls:
                     local_path = self._download_image(img["url"])
@@ -121,6 +129,123 @@ class ImageFetcher:
             attempt += 1
 
         return verified[:self._max_per_dest]
+
+    def _rank_images_for_destination(self, images: list[dict[str, Any]], destination: str) -> list[dict[str, Any]]:
+        tokens = self._location_tokens(destination)
+        if not tokens:
+            return images
+
+        profile = self._destination_image_profile(destination)
+
+        def score(img: dict[str, Any]) -> int:
+            hay = " ".join(
+                [
+                    str(img.get("title", "") or ""),
+                    str(img.get("credit", "") or ""),
+                    str(img.get("url", "") or ""),
+                ]
+            ).lower()
+            base = sum(1 for t in tokens if t in hay)
+
+            # Strongly penalize context mismatch (e.g., coral/ocean photos for desert parks).
+            neg = sum(1 for t in profile["negative"] if t in hay)
+            pos = sum(1 for t in profile["positive"] if t in hay)
+
+            return base + (2 * pos) - (3 * neg)
+
+        def neg_hits(img: dict[str, Any]) -> int:
+            hay = " ".join(
+                [
+                    str(img.get("title", "") or ""),
+                    str(img.get("credit", "") or ""),
+                    str(img.get("url", "") or ""),
+                ]
+            ).lower()
+            return sum(1 for t in profile["negative"] if t in hay)
+
+        scored = sorted(images, key=score, reverse=True)
+        non_negative = [img for img in scored if neg_hits(img) == 0]
+        if non_negative:
+            scored = non_negative
+        # Keep only relevant images when possible; if none score above zero, keep original order.
+        positive = [img for img in scored if score(img) > 0]
+        return positive if positive else scored
+
+    @staticmethod
+    def _destination_image_profile(destination: str) -> dict[str, set[str]]:
+        d = (destination or "").lower()
+
+        positive: set[str] = {
+            "landscape",
+            "mountain",
+            "canyon",
+            "plateau",
+            "mesa",
+            "desert",
+            "trail",
+            "hiking",
+            "sandstone",
+            "cliff",
+            "rock",
+            "national park",
+        }
+        negative: set[str] = set()
+
+        # For inland and canyon/desert contexts, marine imagery is usually a mismatch.
+        inland_cues = (
+            "national park",
+            "state park",
+            "desert",
+            "canyon",
+            "mesa",
+            "plateau",
+            "utah",
+            "arizona",
+            "nevada",
+            "new mexico",
+            "colorado",
+        )
+        if any(cue in d for cue in inland_cues):
+            negative.update(
+                {
+                    "coral",
+                    "underwater",
+                    "scuba",
+                    "snorkel",
+                    "snorkeling",
+                    "ocean",
+                    "sea",
+                    "tropical",
+                    "reef fish",
+                    "marine",
+                    "wildlife",
+                    "bird",
+                    "rodent",
+                    "marmot",
+                    "chipmunk",
+                    "squirrel",
+                    "weasel",
+                    "animal portrait",
+                }
+            )
+
+        # Specific guard for Capitol Reef ambiguity with ocean reef photos.
+        if "capitol reef" in d or "capital reef" in d:
+            negative.update({"coral", "underwater", "ocean", "sea", "scuba", "snorkel"})
+            positive.update({"capitol reef", "waterpocket fold", "utah", "sandstone"})
+
+        return {"positive": positive, "negative": negative}
+
+    @staticmethod
+    def _location_tokens(destination: str) -> list[str]:
+        parts = re.findall(r"[a-z0-9]+", (destination or "").lower())
+        stop = {"national", "park", "state", "the", "and", "city"}
+        tokens = [p for p in parts if len(p) >= 4 and p not in stop]
+        # Add canonical typo resilience for common park names.
+        expanded = set(tokens)
+        if "kolob" in expanded:
+            expanded.add("kolb")
+        return sorted(expanded)
 
     # ── NPS images ───────────────────────────────────────────────────────────
 

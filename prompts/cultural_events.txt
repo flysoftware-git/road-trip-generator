@@ -92,8 +92,10 @@ FORMAT B — Honest fallback (count < 2)
 
   "local_tip": "One specific actionable item: a recurring weekly event, a
     venue with a reliable music schedule, a free NPS evening program, a
-    Saturday market. Give name and a brief access note. Omit this field if
-    nothing can be stated with confidence."
+    Saturday market. Give name and a brief access note. If the tip references
+    a specific weekday (e.g., Friday, Saturday), that weekday MUST be within
+    the itinerary date range for this destination. Omit this field if nothing
+    can be stated with confidence."
 }}
 
 ════════════════════════════════════════════════════════

@@ -1,5 +1,44 @@
 # Road Trip Itinerary Generator — Requirements Document
-**Version 0.9 · July 20, 2026**
+**Version 0.15 · July 21, 2026**
+
+### Changelog from v0.15
+| # | Section | Change |
+|---|---|---|
+| 1 | §4, §7 | Daily schedule rendering updated to hanging-indent format so wrapped lines align under time-of-day content while icon+label stay on one line |
+| 2 | §4.3 | Local-tip fallback content now includes a "More info" link using query-based lookup when no direct source URL is available |
+| 3 | §6, §7 | Single supplemental image layout now centers/fills gallery space rather than left-column pinning |
+| 4 | §5 | External link rendering hardened with URL normalization/escaping to reduce broken links in attractions, restaurants, events, and en-route cards |
+
+### Changelog from v0.14
+| # | Section | Change |
+|---|---|---|
+| 1 | §4, §7 | Schedule time-of-day labels now require non-wrapping icon+label alignment, with content text wrapping under the schedule content column |
+| 2 | §4, §5 | CAN'T-MISS ENROUTE stop links hardened with escaped href rendering and actionable fallback links |
+| 3 | §4.3 | Cultural events now require a resolvable "More info" link per identified event (source URL or generated search fallback) |
+
+### Changelog from v0.13
+| # | Section | Change |
+|---|---|---|
+| 1 | §4 | Schedule normalization now injects arrival/departure travel context for first/last itinerary days when multi-day stays are present |
+| 2 | §5 | Attraction and en-route links now fall back to Google Maps query links when strict URL discovery yields no verified page |
+| 3 | §7 | Scenic-drive popup now includes a "More Info" external link and suppresses attribution-style text in popup body |
+| 4 | §4, §6 | Attraction deduplication and image-localization relevance scoring added to reduce redundant entries and off-location photos |
+| 5 | §7 | Cultural events card styling normalized to match core card visual language |
+
+### Changelog from v0.12
+| # | Section | Change |
+|---|---|---|
+| 1 | §5 | Hike URL reliability hardened: specific AllTrails trail URLs are accepted without brittle liveness checks that often fail on bot-protected pages |
+| 2 | §4, §7 | En-route stop schema/rendering now includes detour metadata (`detour_distance_miles`, `detour_time_minutes`) for CAN'T-MISS ENROUTE cards |
+| 3 | §7, §8 | Footer credit now renders generator name + version + generation timestamp with repository link; static "Made by Copilot" removed |
+| 4 | §4 | Added budget-aware dinner price filtering rules in post-normalization |
+| 5 | §13-§18 | Added requirements coverage for PWA support, print formatting, per-destination maps, dinner price logic, planning-link formatting, and month-specific weather grounding |
+
+### Changelog from v0.11
+| # | Section | Change |
+|---|---|---|
+| 1 | §4 | Added deterministic weather grounding: `expected_environment.temperature_high_f` / `temperature_low_f` are normalized from historical monthly climate normals by destination coordinates and travel month |
+| 2 | §4 | Environment summary temperature claims are rewritten to reflect grounded normals, reducing hallucinated weather ranges |
 
 ### Changelog from v0.8
 | # | Section | Change |
@@ -8,6 +47,17 @@
 | 2 | §7 | Assembler updated to produce output matching template's CSS/JS conventions: section IDs use `section-{id}` format, CSS class `dest-section`, drive buttons use `class="drive-link"` + `data-drive-title`, `DRIVE_DESCRIPTIONS` keyed by raw title string |
 | 3 | §7 | Validator updated to check `data-drive-title` attribute (not `data-drive-key`) and `id="section-{id}"` format (not bare `id="{id}"`) |
 | 4 | §11 | Added `XAI_MODEL` env var to select Grok model; `XAI_API_KEY` already present since v0.8 |
+
+### Changelog from v0.10
+| # | Section | Change |
+|---|---|---|
+| 1 | §3 | Added optional `trip.departure` and `trip.return` manifest fields; geocoded and used in route links/map context |
+| 2 | §5, §9 | Added `--noschedule` CLI flag to suppress schedule rendering |
+| 3 | §5 | URL policy tightened: hike links resolve via AllTrails; non-hike attractions may use NPS/official sources |
+| 4 | §5 | URL selection requires relevance checks (not only liveness), reducing generic search/landing-page links |
+| 5 | §7 | Full Route Map now uses Google Maps Directions API parameters (origin/destination/waypoints by place name) rather than bare coordinate chains |
+| 6 | §8 | Debug block rendering is opt-in (`config.render.show_debug_block`) and off by default |
+| 7 | §11 | LLM cost tracking now includes Grok/xAI usage from URL discovery and cultural-event search calls |
 
 ### Changelog from v0.7
 | # | Section | Change |
@@ -53,6 +103,8 @@ The output file must be deployable to GitHub Pages or any static host with zero 
 │  STAGE 2: AI Content Generation (Azure OpenAI)          │
 │  • Per-destination content: environment, attractions,   │
 │    en-route stops, schedule, restaurants (NO URLS)      │
+│  • Post-normalization grounds monthly temperatures       │
+│    from climate normals and rewrites weather narrative   │
 │  • Scenic drives + viewpoints (fully AI-discovered)     │
 │  • Cultural events via Grok semantic search + AI synthesis│
 └────────────────────┬────────────────────────────────────┘
@@ -115,6 +167,9 @@ The manifest is intentionally minimal. All geocoding, NPS detection, URL discove
 | `subtitle` | ✅ | Trip subtitle (e.g., "October 2026 — Utah & Colorado") |
 | `theme_color` | ✅ | Hex color for nav, headers, map markers (e.g., `#C0623E`) |
 | `llm` | ❌ optional | Override model routing for this trip: `{provider, model, temperature, max_tokens}` |
+| `budget` | ❌ optional | Budget guidance (string/number/object) passed into AI prompts |
+| `departure` | ❌ optional | Route origin location name for first leg and full-route map |
+| `return` | ❌ optional | Route final endpoint location name for full-route map |
 
 `trip.llm.provider` supports: `openai`, `anthropic`, `deepseek`, `gemini`.
 
@@ -125,7 +180,7 @@ The manifest is intentionally minimal. All geocoding, NPS detection, URL discove
 | `lat` / `lng` | Nominatim geocoding from `name` |
 | `nps_park_code` | Keyword detection + NPS API text search |
 | `weather_url` | Constructed from lat/lng |
-| `google_maps_link` | Auto-generated from ordered destination coordinates |
+| `google_maps_link` | Auto-generated from origin/destination/waypoints (names); includes `departure`/`return` when provided |
 
 ### 3.3 Destination Fields
 
@@ -155,7 +210,12 @@ Seeds are lightweight hints that anchor AI content generation to specific user i
 
 ```json
 {
-  "expected_environment": "string — sensory lead + temp range + operational note",
+  "expected_environment": {
+    "summary": "string — sensory lead + operational note; temp claims are grounded post-generation",
+    "temperature_high_f": "integer — grounded monthly daytime normal in °F",
+    "temperature_low_f": "integer — grounded monthly overnight normal in °F",
+    "what_to_pack": ["string", "..."]
+  },
   "getting_here": {
     "from_previous": "string — driving directions from previous destination",
     "en_route_stops": [
@@ -163,7 +223,9 @@ Seeds are lightweight hints that anchor AI content generation to specific user i
         "name": "string",
         "highway_reference": "string — highway and exit/milepost",
         "description": "string — what makes this worth stopping for",
-        "time_required": "string — e.g., '30 minutes'"
+        "time_required": "string — e.g., '30 minutes'",
+        "detour_distance_miles": "number — extra miles off the direct route (0 if on-route)",
+        "detour_time_minutes": "number — extra drive minutes for detour (0 if on-route)"
       }
     ]
   },
@@ -190,6 +252,16 @@ Seeds are lightweight hints that anchor AI content generation to specific user i
 ```
 
 **Restaurant requirements:** 5–6 per destination. Must include 3+ distinct cuisine types and 2+ price tiers. Coverage must include both top-rated and local/casual options.
+
+**Dinner price filtering logic:**
+- If trip budget indicates budget/economy/value, recommendations should be centered on `$`/`$$` with at most one splurge (`$$$`/`$$$$`).
+- If trip budget indicates premium/luxury/upscale, recommendations should be centered on `$$$`/`$$$$` with at most one casual option (`$`/`$$`).
+- If no clear budget signal exists, include a mixed tier spread.
+
+**Schedule realism rules:**
+- Multi-day destination schedules must account for arrival-driving impact on Day 1.
+- Final day should account for onward departure preparation to the next destination.
+- Day-level sequencing should remain feasible given same-day drive and activity load.
 
 ### 4.2 Scenic Drives & Viewpoints Schema
 
@@ -221,11 +293,14 @@ Seeds are lightweight hints that anchor AI content generation to specific user i
       "date": "string",
       "venue": "string — physical address",
       "admission": "string",
-      "ambient_scene": "string — what it feels like to be there"
+      "ambient_scene": "string — what it feels like to be there",
+      "url": "string — source event URL when available"
     }
   ]
 }
 ```
+
+Each identified event should render a "More info" link. If a source event URL is unavailable after verification, renderer may fall back to a query-based search link using event name + venue + destination.
 
 **Format B — Honest fallback (no invented events):**
 ```json
@@ -235,6 +310,8 @@ Seeds are lightweight hints that anchor AI content generation to specific user i
   "local_tip": "string — one practical insight"
 }
 ```
+
+If `local_tip` references a specific weekday (for example, Friday or Saturday), that weekday must be within the destination itinerary date window; otherwise `local_tip` is omitted.
 
 The AI must NEVER invent events. Remote national parks almost always return Format B.
 
@@ -246,13 +323,20 @@ AI content generation and URL discovery are strictly separate pipeline stages. *
 
 After AI content is generated, the URL Discoverer uses xAI Grok semantic search for every named entity:
 
-1. **Attractions in NPS parks:** First query uses `site:nps.gov` domain filter
-2. **All attractions:** Falls back to AllTrails domain filter
+1. **Hike attractions:** Resolve via AllTrails domain filter (primary policy)
+2. **Non-hike attractions in NPS parks:** Prefer `site:nps.gov` domain filter
+3. **Non-hike attractions:** Fall back to official/specific pages from broader search
 3. **Restaurants:** Two-pass — Google Maps domain filter, then TripAdvisor
 4. **All items:** 4-variant fallback query sequence (most specific → broadest)
 5. **Final fallback:** Empty string stored (no fabricated URLs)
 
-Every discovered URL is HTTP HEAD-verified before storage.
+Every discovered URL is HTTP-verified before storage, and strict candidates must also pass relevance checks against item/destination tokens. Live-but-generic search pages are rejected.
+
+Exception for hike links:
+- For specific AllTrails trail pages (`alltrails.com/trail/...`), URL acceptance may bypass strict liveness checks when provider-side bot protections reject automated HEAD/GET requests.
+
+Fallback policy for unresolved links:
+- If strict discovery does not produce a verified attraction/en-route/scenic URL, render a Google Maps query link so cards still resolve to actionable context.
 
 ---
 
@@ -313,7 +397,7 @@ A collapsible `<details>` block is appended before `</body>` containing:
 1. Generator version + generation timestamp (UTC)
 2. Image attribution table (destination, title, source, credit, license per image)
 3. Cultural events disclaimer: *"Event information was auto-discovered and may not be current."*
-4. Generator credit line with link to repository
+4. Generator credit line with repository link, generator version, and generation timestamp (UTC)
 
 ---
 
@@ -330,6 +414,7 @@ Options:
   --skip-images            Skip image fetching
   --skip-events            Skip cultural events discovery
   --skip-url-discovery     Skip URL discovery (AI content only)
+    --noschedule             Suppress schedule rendering in output HTML
   --destination TEXT       Limit to specific destination id (repeatable)
   --verbose                Enable debug logging
 ```
@@ -363,6 +448,10 @@ Key configurable values:
 | `XAI_MODEL` | ❌ | Grok model name (default: `grok-2-latest`; set to `grok-4.5` or later as available) |
 | `NPS_API_KEY` | ❌ | NPS API key (default: `DEMO_KEY`, rate-limited) |
 
+Cost accounting note:
+- LLM usage/cost summary includes OpenAI (content/drives), plus xAI Grok usage from URL discovery and cultural-event search requests.
+- URL liveness/relevance HTTP checks do not consume LLM tokens and are not part of LLM-cost.
+
 ---
 
 ## 12. Output Structure
@@ -375,3 +464,53 @@ output/
 │   └── ...
 └── validation_report.json  ← Post-assembly validation results
 ```
+
+---
+
+## 13. PWA Support Requirements
+
+- Output HTML must include installable web app metadata (manifest + app icons).
+- A service worker must be registered best-effort for offline shell behavior and static asset caching.
+- Install prompt UX should be exposed when browser eligibility allows.
+
+---
+
+## 14. Print-Friendly Requirements
+
+- Print stylesheet must hide non-essential interactive UI (map nav chrome, install buttons, galleries where needed).
+- Printed output must preserve section readability, headings, and link traceability (show URL targets in print).
+- Page-break behavior should keep each destination section coherent and avoid orphaned headers.
+
+---
+
+## 15. Per-Destination Map Requirements
+
+- Each destination section should support an embedded local map panel showing the destination coordinate context.
+- Embedded map content must not break static-host deployment and should degrade gracefully when map scripts fail.
+
+Related popup requirement:
+- Scenic-drive and day-trip modal content should include one direct "More Info" link and should not include attribution-list boilerplate.
+
+---
+
+## 16. Planning Link Formatting Rules
+
+- Planning links render as compact pill-style buttons in destination headers.
+- Labels should be short, action-oriented, and consistently capitalized.
+- Invalid or missing URLs must be omitted rather than rendered as dead controls.
+
+---
+
+## 17. Month-Specific Weather Grounding Rules
+
+- Temperature fields in `expected_environment` must be post-normalized from historical monthly climate normals using destination coordinates and trip month.
+- Grounding source currently uses Open-Meteo historical daily temperatures, aggregated to monthly daytime high and overnight low normals.
+- Narrative summary temperature claims must be rewritten to match grounded values.
+
+---
+
+## 18. En-Route Detour Display Rules
+
+- CAN'T-MISS ENROUTE entries should display detour overhead (`detour_distance_miles`, `detour_time_minutes`) when available.
+- Zero-detour stops should remain valid and may display as on-route.
+- Stop cards should use content-appropriate iconography (trail, viewpoint, food, market, etc.) and should avoid forced em-dash-only sentence formatting.
