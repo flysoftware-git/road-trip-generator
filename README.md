@@ -128,6 +128,7 @@ python -m generator.main [OPTIONS]
   --llm-model TEXT         Override LLM model for this run
   --dry-run                Parse & validate manifest only; no AI calls
   --skip-images            Skip image fetching (faster iteration)
+  --refresh-image-cache    Force refresh image provider queries (bypass local image cache)
   --skip-events            Skip cultural events discovery
   --skip-url-discovery     Skip URL discovery (AI content only)
   --destination TEXT       Limit to specific destination id (repeatable)
@@ -145,6 +146,9 @@ python -m generator.main --manifest trip.yaml --destination zion
 
 # Fast iteration (skip images and events)
 python -m generator.main --manifest trip.yaml --skip-images --skip-events
+
+# Re-run with fresh image-provider lookup (ignore local cache index)
+python -m generator.main --manifest trip.yaml --refresh-image-cache
 
 # Test with a different provider without editing config.yaml/manifest
 python -m generator.main --manifest trip.yaml --llm-provider anthropic
@@ -249,6 +253,7 @@ ai:
 images:
   min_per_destination: 2    # Hard fail if fewer verified images
   max_per_destination: 4    # Max images fetched per destination
+  cache_ttl_hours: 168      # Reuse image candidate cache for iterative runs
 
 url_discovery:
   max_fallback_attempts: 4  # Query variants tried per item
@@ -264,6 +269,10 @@ output/
 ├── images/
 │   └── {md5hash}.jpg       ← Downloaded destination photos
 └── validation_report.json  ← Post-assembly validation results
+
+.cache/
+└── images/
+  └── cache_index.json    ← Local image-candidate cache for iterative regeneration
 ```
 
 ---

@@ -19,6 +19,7 @@ Flags:
 """
 
 from __future__ import annotations
+import json
 import logging, os, sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +27,110 @@ import click
 from generator import __version__, __template_version__
 
 logger = logging.getLogger(__name__)
+
+
+def _write_pwa_assets(output_dir: Path, trip: dict) -> None:
+        """Write manifest.webmanifest and sw.js next to generated index.html."""
+        trip_meta = trip.get("trip", {}) if isinstance(trip, dict) else {}
+        title = str(trip_meta.get("title", "Road Trip Itinerary") or "Road Trip Itinerary").strip()
+        subtitle = str(trip_meta.get("subtitle", "Interactive road trip itinerary") or "Interactive road trip itinerary").strip()
+        theme_color = str(trip_meta.get("theme_color", "#C0623E") or "#C0623E").strip()
+
+        icon_192 = (
+                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E"
+                "%3Crect width='192' height='192' rx='36' fill='%23C0623E'/%3E"
+                "%3Ctext x='50%25' y='54%25' font-size='110' text-anchor='middle' dominant-baseline='middle'%3E"
+                "%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E"
+        )
+        icon_512 = (
+                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E"
+                "%3Crect width='512' height='512' rx='96' fill='%23C0623E'/%3E"
+                "%3Ctext x='50%25' y='54%25' font-size='300' text-anchor='middle' dominant-baseline='middle'%3E"
+                "%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E"
+        )
+
+        manifest = {
+                "name": title,
+                "short_name": title[:24] or "Road Trip",
+                "description": subtitle,
+                "start_url": "./index.html",
+                "scope": "./",
+                "display": "standalone",
+                "background_color": "#FAFAF7",
+                "theme_color": theme_color,
+                "orientation": "portrait-primary",
+                "icons": [
+                        {
+                                "src": icon_192,
+                                "sizes": "192x192",
+                                "type": "image/svg+xml",
+                                "purpose": "any maskable",
+                        },
+                        {
+                                "src": icon_512,
+                                "sizes": "512x512",
+                                "type": "image/svg+xml",
+                                "purpose": "any maskable",
+                        },
+                ],
+        }
+        (output_dir / "manifest.webmanifest").write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+        )
+
+        sw_js = """const CACHE = 'roadtrip-shell-v1';
+const SHELL = ['./', './index.html', './manifest.webmanifest'];
+
+self.addEventListener('install', (event) => {
+    event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((keys) =>
+            Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+        )
+    );
+    self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') {
+        return;
+    }
+
+    const reqUrl = new URL(event.request.url);
+    const sameOrigin = reqUrl.origin === self.location.origin;
+    const cacheableCdn =
+        reqUrl.href.startsWith('https://cdn.tailwindcss.com') ||
+        reqUrl.href.startsWith('https://unpkg.com/lucide@latest') ||
+        reqUrl.href.startsWith('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/');
+
+    if (!sameOrigin && !cacheableCdn) {
+        return;
+    }
+
+    event.respondWith(
+        caches.match(event.request).then((cached) => {
+            if (cached) {
+                return cached;
+            }
+            return fetch(event.request)
+                .then((response) => {
+                    if (response && response.ok) {
+                        const clone = response.clone();
+                        caches.open(CACHE).then((cache) => cache.put(event.request, clone));
+                    }
+                    return response;
+                })
+                .catch(() => caches.match('./index.html'));
+        })
+    );
+});
+"""
+        (output_dir / "sw.js").write_text(sw_js, encoding="utf-8")
 
 
 def _setup_logging(verbose: bool) -> None:
@@ -59,6 +164,7 @@ def _setup_logging(verbose: bool) -> None:
 @click.option("--llm-model", type=str, help="Override LLM model for this run")
 @click.option("--dry-run", is_flag=True, help="Parse & validate only; no AI calls")
 @click.option("--skip-images", is_flag=True, help="Skip image fetching")
+@click.option("--refresh-image-cache", is_flag=True, help="Force refresh image-provider queries, bypassing local image cache")
 @click.option("--skip-events", is_flag=True, help="Skip cultural events discovery")
 @click.option("--skip-url-discovery", is_flag=True, help="Skip URL discovery")
 @click.option("--noschedule", is_flag=True, help="Suppress schedule card rendering in output HTML")
@@ -74,6 +180,7 @@ def main(
     llm_model: str | None,
     dry_run: bool,
     skip_images: bool,
+    refresh_image_cache: bool,
     skip_events: bool,
     skip_url_discovery: bool,
     noschedule: bool,
@@ -256,7 +363,11 @@ def main(
         if not skip_images:
             click.echo("Stage 5/6 — Fetching images…")
             from generator.image_fetcher import ImageFetcher
-            ImageFetcher(config_path, output_dir=output_dir / "images").fetch_all(trip)
+            ImageFetcher(
+                config_path,
+                output_dir=output_dir / "images",
+                force_refresh=refresh_image_cache,
+            ).fetch_all(trip)
             total = sum(len(d.get("images", [])) for d in trip["destinations"])
             click.echo(f"  ✓ {total} images fetched")
         else:
@@ -301,6 +412,9 @@ def main(
     output_file = output_dir / "index.html"
     output_file.write_text(html, encoding="utf-8")
     click.echo(f"  ✓ index.html written ({output_file.stat().st_size:,} bytes)")
+
+    _write_pwa_assets(output_dir, trip)
+    click.echo("  ✓ PWA assets written (manifest.webmanifest, sw.js)")
 
     # ── Validate ─────────────────────────────────────────────────────────────
     from generator.html_validator import HTMLValidator

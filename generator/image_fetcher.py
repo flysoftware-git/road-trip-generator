@@ -11,7 +11,7 @@ Images are embedded as data URIs in the HTML (base64) OR stored as
 relative paths in output/images/ depending on config.
 """
 from __future__ import annotations
-import hashlib, logging, mimetypes, os, threading, time
+import hashlib, json, logging, mimetypes, os, threading, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
 from pathlib import Path
@@ -31,7 +31,12 @@ REQUEST_DELAY = 1.5
 
 
 class ImageFetcher:
-    def __init__(self, config_path: str | Path = "config.yaml", output_dir: str | Path | None = None) -> None:
+    def __init__(
+        self,
+        config_path: str | Path = "config.yaml",
+        output_dir: str | Path | None = None,
+        force_refresh: bool = False,
+    ) -> None:
         import yaml
         with Path(config_path).open() as f:
             cfg = yaml.safe_load(f)
@@ -39,11 +44,18 @@ class ImageFetcher:
         images_cfg = cfg.get("images", {})
         self._min_per_dest = images_cfg.get("min_per_destination", 2)
         self._max_per_dest = images_cfg.get("max_per_destination", 4)
+        self._cache_ttl_seconds = int(images_cfg.get("cache_ttl_hours", 168)) * 3600
+        self._force_refresh = force_refresh
         if output_dir is None:
             self._output_dir = Path("output/images")
         else:
             self._output_dir = Path(output_dir)
         self._output_dir.mkdir(parents=True, exist_ok=True)
+        self._cache_dir = Path(".cache/images")
+        self._cache_dir.mkdir(parents=True, exist_ok=True)
+        self._cache_index_path = self._cache_dir / "cache_index.json"
+        self._cache_lock = threading.Lock()
+        self._cache_index = self._load_cache_index()
         self._session_local = threading.local()
 
     def _get_session(self) -> requests.Session:
@@ -79,6 +91,16 @@ class ImageFetcher:
     def _fetch_for_dest(self, dest: dict[str, Any]) -> list[dict[str, Any]]:
         images: list[dict[str, Any]] = []
         dest_name = str(dest.get("name", "") or "")
+        cache_key = self._cache_key(dest)
+
+        if not self._force_refresh:
+            cached_images = self._get_cached_images(cache_key)
+            if cached_images:
+                logger.info("  Reusing cached image candidates for '%s'", dest_name)
+                verified_cached = self._verify_and_materialize(cached_images, dest_name)
+                if len(verified_cached) >= self._min_per_dest:
+                    return verified_cached[:self._max_per_dest]
+                images.extend(cached_images)
 
         # Source 1: NPS API
         if dest.get("nps_park_code"):
@@ -95,19 +117,7 @@ class ImageFetcher:
             images.extend(self._fetch_from_wikimedia(dest["name"], limit=remaining + 2))
 
         images = self._rank_images_for_destination(images, dest_name)
-
-        # Verify and deduplicate
-        verified: list[dict[str, Any]] = []
-        seen_urls: set[str] = set()
-        for img in images:
-            if img.get("url") and img["url"] not in seen_urls:
-                local_path = self._download_image(img["url"])
-                if local_path:
-                    img["local_path"] = str(local_path)
-                    verified.append(img)
-                    seen_urls.add(img["url"])
-            if len(verified) >= self._max_per_dest:
-                break
+        verified = self._verify_and_materialize(images, dest_name)
 
         # Fallback queries if still short
         attempt = 0
@@ -117,18 +127,105 @@ class ImageFetcher:
             logger.warning("  Image fallback attempt %d for '%s': '%s'", attempt + 1, dest["name"], query)
             extra = self._fetch_from_wikimedia(query, limit=4)
             extra = self._rank_images_for_destination(extra, dest_name)
-            for img in extra:
-                if img.get("url") and img["url"] not in seen_urls:
-                    local_path = self._download_image(img["url"])
-                    if local_path:
-                        img["local_path"] = str(local_path)
-                        verified.append(img)
-                        seen_urls.add(img["url"])
-                if len(verified) >= self._max_per_dest:
-                    break
+            verified = self._verify_and_materialize(verified + extra, dest_name)
             attempt += 1
 
+        if verified:
+            self._set_cached_images(cache_key, verified)
+
         return verified[:self._max_per_dest]
+
+    def _verify_and_materialize(self, images: list[dict[str, Any]], dest_name: str) -> list[dict[str, Any]]:
+        ranked = self._rank_images_for_destination(images, dest_name)
+        verified: list[dict[str, Any]] = []
+        seen_urls: set[str] = set()
+        for img in ranked:
+            url = str(img.get("url", "") or "").strip()
+            if not url or url in seen_urls:
+                continue
+            local_path = self._download_image(url)
+            if not local_path:
+                continue
+            item = dict(img)
+            item["local_path"] = str(local_path)
+            verified.append(item)
+            seen_urls.add(url)
+            if len(verified) >= self._max_per_dest:
+                break
+        return verified
+
+    def _cache_key(self, dest: dict[str, Any]) -> str:
+        name = str(dest.get("name", "") or "").strip().lower()
+        name = re.sub(r"\s+", " ", name)
+        nps = str(dest.get("nps_park_code", "") or "none").strip().lower()
+        return f"v1::{name}::{nps}"
+
+    def _load_cache_index(self) -> dict[str, Any]:
+        if not self._cache_index_path.exists():
+            return {"version": 1, "entries": {}}
+        try:
+            payload = json.loads(self._cache_index_path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                return {"version": 1, "entries": {}}
+            payload.setdefault("version", 1)
+            payload.setdefault("entries", {})
+            if not isinstance(payload["entries"], dict):
+                payload["entries"] = {}
+            return payload
+        except Exception:
+            logger.warning("Image cache index unreadable; rebuilding: %s", self._cache_index_path)
+            return {"version": 1, "entries": {}}
+
+    def _save_cache_index(self) -> None:
+        tmp = self._cache_index_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(self._cache_index, indent=2), encoding="utf-8")
+        tmp.replace(self._cache_index_path)
+
+    def _get_cached_images(self, cache_key: str) -> list[dict[str, Any]]:
+        with self._cache_lock:
+            entry = self._cache_index.get("entries", {}).get(cache_key)
+        if not entry or not isinstance(entry, dict):
+            return []
+        updated_at = float(entry.get("updated_at", 0) or 0)
+        if time.time() - updated_at > self._cache_ttl_seconds:
+            return []
+        images = entry.get("images", [])
+        if not isinstance(images, list):
+            return []
+        out: list[dict[str, Any]] = []
+        for item in images:
+            if not isinstance(item, dict):
+                continue
+            if not item.get("url"):
+                continue
+            out.append(dict(item))
+        return out
+
+    def _set_cached_images(self, cache_key: str, images: list[dict[str, Any]]) -> None:
+        slim: list[dict[str, Any]] = []
+        for img in images:
+            if not isinstance(img, dict):
+                continue
+            url = str(img.get("url", "") or "").strip()
+            if not url:
+                continue
+            slim.append(
+                {
+                    "url": url,
+                    "title": str(img.get("title", "") or ""),
+                    "credit": str(img.get("credit", "") or ""),
+                    "license": str(img.get("license", "") or ""),
+                    "source": str(img.get("source", "") or ""),
+                }
+            )
+        if not slim:
+            return
+        with self._cache_lock:
+            self._cache_index.setdefault("entries", {})[cache_key] = {
+                "updated_at": time.time(),
+                "images": slim,
+            }
+            self._save_cache_index()
 
     def _rank_images_for_destination(self, images: list[dict[str, Any]], destination: str) -> list[dict[str, Any]]:
         tokens = self._location_tokens(destination)

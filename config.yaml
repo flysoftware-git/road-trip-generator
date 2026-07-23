@@ -56,6 +56,7 @@ images:
   per_destination: 3
   min_per_destination: 2
   max_per_destination: 4
+  cache_ttl_hours: 168
   max_fallback_attempts: 4
   verify_timeout_seconds: 8
   valid_content_types:

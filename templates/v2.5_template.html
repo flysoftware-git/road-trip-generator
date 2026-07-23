@@ -16,41 +16,7 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23C0623E'/%3E%3Ctext x='50%25' y='54%25' font-size='110' text-anchor='middle' dominant-baseline='middle'%3E🗺️%3C/text%3E%3C/svg%3E" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23C0623E'/%3E%3Ctext x='50%25' y='54%25' font-size='110' text-anchor='middle' dominant-baseline='middle'%3E🗺️%3C/text%3E%3C/svg%3E" type="image/svg+xml" />
 
-    <!-- PWA: Web App Manifest (inline as data URI) -->
-    <script>
-    (function() {
-      var manifest = {
-        name: "Southwest Road Trip Itinerary",
-        short_name: "SW Road Trip",
-        description: "Interactive road trip itinerary — Zion to Santa Fe",
-        start_url: window.location.href,
-        display: "standalone",
-        background_color: "#FAFAF7",
-        theme_color: "#C0623E",
-        orientation: "portrait-primary",
-        icons: [
-          {
-            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23C0623E'/%3E%3Ctext x='50%25' y='54%25' font-size='110' text-anchor='middle' dominant-baseline='middle'%3E🗺️%3C/text%3E%3C/svg%3E",
-            sizes: "192x192",
-            type: "image/svg+xml",
-            purpose: "any maskable"
-          },
-          {
-            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23C0623E'/%3E%3Ctext x='50%25' y='54%25' font-size='300' text-anchor='middle' dominant-baseline='middle'%3E🗺️%3C/text%3E%3C/svg%3E",
-            sizes: "512x512",
-            type: "image/svg+xml",
-            purpose: "any maskable"
-          }
-        ]
-      };
-      var blob = new Blob([JSON.stringify(manifest)], {type: 'application/manifest+json'});
-      var url = URL.createObjectURL(blob);
-      var link = document.createElement('link');
-      link.rel = 'manifest';
-      link.href = url;
-      document.head.appendChild(link);
-    })();
-    </script>
+    <link id="pwa-manifest-link" rel="manifest" href="./manifest.webmanifest" />
     <title>Southwest Road Trip Itinerary — Full</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -556,175 +522,84 @@
     </script>
 
     <script>
-    // ── Service Worker (blob URL — caches CDN assets for offline use) ──
-    if ('serviceWorker' in navigator) {
-      var swCode = [
-        "const CACHE = 'sw-road-trip-v1';",
-        "const CDN = [",
-        "  'https://cdn.tailwindcss.com',",
-        "  'https://unpkg.com/lucide@latest',",
-        "];",
-        "self.addEventListener('install', function(e) {",
-        "  e.waitUntil(caches.open(CACHE).then(function(c) {",
-        "    return Promise.allSettled(CDN.map(function(u) { return c.add(u).catch(function(){}); }));",
-        "  }));",
-        "  self.skipWaiting();",
-        "});",
-        "self.addEventListener('activate', function(e) {",
-        "  e.waitUntil(clients.claim());",
-        "});",
-        "self.addEventListener('fetch', function(e) {",
-        "  if (CDN.some(function(u) { return e.request.url.startsWith(u); })) {",
-        "    e.respondWith(caches.match(e.request).then(function(r) { return r || fetch(e.request); }));",
-        "  }",
-        "});",
-      ].join('\n');
-      try {
-        var swBlob = new Blob([swCode], {type: 'application/javascript'});
-        var swUrl = URL.createObjectURL(swBlob);
-        navigator.serviceWorker.register(swUrl).catch(function() {});
-      } catch(e) {}
-    }
+    (function() {
+      var manifestLink = document.getElementById('pwa-manifest-link');
 
-    // ── Install prompt ──
-    var deferredPrompt = null;
-    var installBtn = document.getElementById('pwa-install-btn');
-
-    window.addEventListener('beforeinstallprompt', function(e) {
-      e.preventDefault();
-      deferredPrompt = e;
-      if (installBtn) installBtn.style.display = 'flex';
-    });
-
-    if (installBtn) {
-      installBtn.addEventListener('click', function() {
-        if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(function() {
-          deferredPrompt = null;
-          installBtn.style.display = 'none';
-        });
-      });
-    }
-
-    window.addEventListener('appinstalled', function() {
-      if (installBtn) installBtn.style.display = 'none';
-      deferredPrompt = null;
-    });
-    </script>
-
-    <!-- PWA: Enhanced installability with canvas-generated icons and manifest -->
-    <script>
-    (function () {
-      /* ── 1. Generate icons via canvas ── */
-      function makeIcon(size) {
-        var c = document.createElement('canvas');
-        c.width = c.height = size;
-        var ctx = c.getContext('2d');
-        // Background
-        ctx.fillStyle = '#C0623E';
-        ctx.beginPath();
-        ctx.roundRect(0, 0, size, size, size * 0.18);
-        ctx.fill();
-        // Map emoji
-        ctx.font = (size * 0.52) + 'px serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('🗺️', size / 2, size / 2 + size * 0.03);
-        return c.toDataURL('image/png');
-      }
-      var icon192, icon512;
-      try { icon192 = makeIcon(192); icon512 = makeIcon(512); } catch(e) {}
-
-      /* ── 2. Inject manifest as blob URL ── */
-      var manifest = {
-        name: 'Southwest Road Trip — Oct 2025',
-        short_name: 'SW Road Trip',
-        description: 'Day-by-day itinerary: Utah National Parks · Telluride · Pagosa Springs · Santa Fe',
-        start_url: window.location.pathname || '/',
-        scope: window.location.pathname || '/',
-        display: 'standalone',
-        orientation: 'any',
-        background_color: '#F5EFE0',
-        theme_color: '#C0623E',
-        categories: ['travel', 'lifestyle'],
-        icons: [
-          { src: icon192 || '', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: icon512 || '', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-        ]
-      };
-      try {
-        var mBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-        var mUrl = URL.createObjectURL(mBlob);
-        var mLink = document.createElement('link');
-        mLink.rel = 'manifest';
-        mLink.href = mUrl;
-        document.head.appendChild(mLink);
-      } catch(e) {}
-
-      /* ── 3. Register a minimal service worker (best-effort) ── */
-      if ('serviceWorker' in navigator) {
-        var swSrc = [
-          "var CACHE='sw-road-trip-v2';",
-          "self.addEventListener('install',function(e){self.skipWaiting();});",
-          "self.addEventListener('activate',function(e){e.waitUntil(clients.claim());});",
-          "self.addEventListener('fetch',function(e){",
-          "  e.respondWith(caches.open(CACHE).then(function(c){",
-          "    return c.match(e.request).then(function(r){",
-          "      return r||fetch(e.request).then(function(res){",
-          "        c.put(e.request,res.clone());return res;",
-          "      });",
-          "    });",
-          "  }));",
-          "});"
-        ].join('\n');
+      // Standalone file fallback: keep the HTML self-contained when opened via file://.
+      if (manifestLink && window.location.protocol === 'file:') {
         try {
-          var swBlob2 = new Blob([swSrc], { type: 'application/javascript' });
-          var swUrl2 = URL.createObjectURL(swBlob2);
-          navigator.serviceWorker.register(swUrl2, { scope: '/' }).catch(function(){});
-        } catch(e) {}
+          var inlineManifest = {
+            name: document.title || 'Road Trip Itinerary',
+            short_name: 'Road Trip',
+            description: 'Interactive road trip itinerary',
+            start_url: './index.html',
+            scope: './',
+            display: 'standalone',
+            background_color: '#FAFAF7',
+            theme_color: '#C0623E',
+            orientation: 'portrait-primary',
+            icons: [
+              {
+                src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23C0623E'/%3E%3Ctext x='50%25' y='54%25' font-size='110' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E",
+                sizes: '192x192',
+                type: 'image/svg+xml',
+                purpose: 'any maskable'
+              },
+              {
+                src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23C0623E'/%3E%3Ctext x='50%25' y='54%25' font-size='300' text-anchor='middle' dominant-baseline='middle'%3E%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E",
+                sizes: '512x512',
+                type: 'image/svg+xml',
+                purpose: 'any maskable'
+              }
+            ]
+          };
+          var inlineBlob = new Blob([JSON.stringify(inlineManifest)], {type: 'application/manifest+json'});
+          manifestLink.href = URL.createObjectURL(inlineBlob);
+        } catch (e) {}
       }
 
-      /* ── 4. Install prompt button (fixed position, complements header button) ── */
-      var deferredPrompt2 = null;
-      window.addEventListener('beforeinstallprompt', function (e) {
+      // Register service worker only on secure origins (https or localhost).
+      var isSecureLike =
+        window.location.protocol === 'https:' ||
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1';
+
+      if (isSecureLike && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(function() {});
+      }
+
+      var deferredPrompt = null;
+      var installBtn = document.getElementById('pwa-install-btn');
+      if (installBtn) {
+        installBtn.style.display = 'none';
+      }
+
+      window.addEventListener('beforeinstallprompt', function(e) {
         e.preventDefault();
-        deferredPrompt2 = e;
-        showFixedInstallBtn();
+        deferredPrompt = e;
+        if (installBtn) {
+          installBtn.style.display = 'flex';
+        }
       });
 
-      function showFixedInstallBtn() {
-        if (document.getElementById('pwa-install-btn-fixed')) return;
-        var btn = document.createElement('button');
-        btn.id = 'pwa-install-btn-fixed';
-        btn.className = 'no-print';
-        btn.innerHTML = '⬇️ Install App';
-        btn.style.cssText = [
-          'position:fixed;bottom:1.25rem;right:1.25rem;z-index:9999;',
-          'background:#C0623E;color:#fff;border:none;border-radius:2rem;',
-          'padding:0.6rem 1.2rem;font-size:0.82rem;font-weight:700;',
-          'box-shadow:0 4px 16px rgba(0,0,0,0.22);cursor:pointer;',
-          'font-family:inherit;letter-spacing:0.02em;',
-          'transition:background 0.2s,transform 0.15s;'
-        ].join('');
-        btn.addEventListener('mouseenter', function(){ btn.style.background='#a04e30'; btn.style.transform='scale(1.04)'; });
-        btn.addEventListener('mouseleave', function(){ btn.style.background='#C0623E'; btn.style.transform='scale(1)'; });
-        btn.addEventListener('click', function () {
-          if (deferredPrompt2) {
-            deferredPrompt2.prompt();
-            deferredPrompt2.userChoice.then(function (r) {
-              if (r.outcome === 'accepted') btn.remove();
-              deferredPrompt2 = null;
-            });
+      if (installBtn) {
+        installBtn.addEventListener('click', function() {
+          if (!deferredPrompt) {
+            return;
           }
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then(function() {
+            deferredPrompt = null;
+            installBtn.style.display = 'none';
+          });
         });
-        document.body.appendChild(btn);
       }
 
-      window.addEventListener('appinstalled', function () {
-        var b = document.getElementById('pwa-install-btn-fixed');
-        if (b) b.remove();
-        deferredPrompt2 = null;
+      window.addEventListener('appinstalled', function() {
+        deferredPrompt = null;
+        if (installBtn) {
+          installBtn.style.display = 'none';
+        }
       });
     })();
     </script>

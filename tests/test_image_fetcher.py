@@ -1,5 +1,7 @@
 """Tests for generator.image_fetcher"""
 import pytest
+import threading
+import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from generator.image_fetcher import ImageFetcher
@@ -13,6 +15,11 @@ def _make_fetcher(tmp_path):
     fetcher._max_per_dest = 4
     fetcher._output_dir = tmp_path / "images"
     fetcher._output_dir.mkdir(parents=True, exist_ok=True)
+    fetcher._cache_ttl_seconds = 7 * 24 * 3600
+    fetcher._force_refresh = False
+    fetcher._cache_index_path = tmp_path / "cache_index.json"
+    fetcher._cache_lock = threading.Lock()
+    fetcher._cache_index = {"version": 1, "entries": {}}
     fetcher._session = MagicMock()
     return fetcher
 
@@ -130,3 +137,57 @@ def test_rank_images_prefers_scenery_over_wildlife_when_available(tmp_path):
     ranked = fetcher._rank_images_for_destination(images, "Bryce Canyon National Park")
     assert ranked
     assert "hoodoos-landscape" in ranked[0]["url"]
+
+
+def test_fetch_for_dest_uses_fresh_cache_before_provider_queries(tmp_path):
+    fetcher = _make_fetcher(tmp_path)
+    dest = {"name": "Zion National Park", "nps_park_code": "zion"}
+    key = fetcher._cache_key(dest)
+    fetcher._cache_index["entries"][key] = {
+        "updated_at": time.time(),
+        "images": [
+            {"url": "https://example.com/z1.jpg", "title": "Zion 1", "credit": "NPS", "license": "PD", "source": "nps"},
+            {"url": "https://example.com/z2.jpg", "title": "Zion 2", "credit": "NPS", "license": "PD", "source": "nps"},
+        ],
+    }
+    fake_local = tmp_path / "images" / "cached.jpg"
+    fake_local.write_bytes(b"X")
+
+    with patch.object(fetcher, "_download_image", return_value=fake_local):
+        with patch.object(fetcher, "_fetch_from_nps", side_effect=AssertionError("provider should not be called")):
+            with patch.object(fetcher, "_fetch_from_unsplash", side_effect=AssertionError("provider should not be called")):
+                with patch.object(fetcher, "_fetch_from_wikimedia", side_effect=AssertionError("provider should not be called")):
+                    out = fetcher._fetch_for_dest(dest)
+
+    assert len(out) >= fetcher._min_per_dest
+    assert all(i.get("local_path") for i in out)
+
+
+def test_fetch_for_dest_force_refresh_bypasses_cache(tmp_path):
+    fetcher = _make_fetcher(tmp_path)
+    fetcher._force_refresh = True
+    dest = {"name": "Bryce Canyon National Park", "nps_park_code": "brca"}
+    key = fetcher._cache_key(dest)
+    fetcher._cache_index["entries"][key] = {
+        "updated_at": time.time(),
+        "images": [
+            {"url": "https://example.com/old.jpg", "title": "Old", "credit": "NPS", "license": "PD", "source": "nps"},
+        ],
+    }
+
+    live_images = [
+        {"url": "https://example.com/live1.jpg", "title": "Live 1", "credit": "NPS", "license": "PD", "source": "nps"},
+        {"url": "https://example.com/live2.jpg", "title": "Live 2", "credit": "NPS", "license": "PD", "source": "nps"},
+    ]
+    fake_local = tmp_path / "images" / "live.jpg"
+    fake_local.write_bytes(b"Y")
+
+    with patch.object(fetcher, "_fetch_from_nps", return_value=live_images) as p_nps:
+        with patch.object(fetcher, "_fetch_from_unsplash", return_value=[]):
+            with patch.object(fetcher, "_fetch_from_wikimedia", return_value=[]):
+                with patch.object(fetcher, "_download_image", return_value=fake_local):
+                    out = fetcher._fetch_for_dest(dest)
+
+    assert p_nps.called
+    assert len(out) >= fetcher._min_per_dest
+    assert all("live" in i.get("url", "") for i in out)

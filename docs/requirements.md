@@ -1,5 +1,17 @@
 # Road Trip Itinerary Generator — Requirements Document
-**Version 0.15 · July 21, 2026**
+**Version 0.17 · July 23, 2026**
+
+### Changelog from v0.17
+| # | Section | Change |
+|---|---|---|
+| 1 | §4, §12 | Added local iterative image cache index (`.cache/images/cache_index.json`) with destination-keyed reuse and TTL control to reduce repeated provider discovery calls |
+| 2 | §5, §11 | Added CLI switch `--refresh-image-cache` to bypass local image cache on demand |
+
+### Changelog from v0.16
+| # | Section | Change |
+|---|---|---|
+| 1 | §13 | Consolidated PWA flow to one canonical implementation: static `manifest.webmanifest`, single `sw.js` registration path, and one install-prompt UX path |
+| 2 | §12, §13 | Generator now writes PWA companion assets beside `index.html` in the active output environment folder |
 
 ### Changelog from v0.15
 | # | Section | Change |
