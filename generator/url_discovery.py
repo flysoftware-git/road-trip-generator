@@ -16072,21 +16072,113 @@ class URLDiscoverer:
         An attraction called simply "Capitol Reef" has no word of its own to
         look for, condition (2) would hold vacuously, and the park's page is
         the right answer for it rather than the wrong one.
+
+        **(1) is read from the place name, not the whole destination string.**
+        As first written it took every significant token of "Capitol Reef
+        National Park, Utah" -- and caught #59 only because `utah` happens to
+        sit in `_significant_tokens`' stoplist, a leftover of the project's
+        Southwest origins alongside `colorado`, `new` and `mexico`. For
+        "Mount Rainier National Park, Washington" the tokens were `mount`,
+        `rainier`, `washington`, and a guide to the park does not put its state
+        in its path. Measured 2026-09-12 against nine live visitor guides to
+        Rainier, Crater Lake and Yosemite, found by search: the rule caught
+        none of them. Read from the place name it catches eight; the ninth is
+        a bare domain whose path names nothing. 32 destinations across the
+        repo's manifests carry a state token that survives the stoplist. The
+        suffix after the first comma is there to disambiguate a geocode; URLs
+        name the place.
+        The stoplist itself is left alone -- every relevance matcher in this
+        module reads it.
+
+        The ITEM's words are still reduced by the whole destination string, so
+        an item is never judged on its state: "Oregon Vortex" in "Gold Hill,
+        Oregon" is asked for `vortex`, not for the `oregon` that half the
+        state's URLs contain.
+
+        **On nps.gov the park code stands in for (1).** NPS scopes every park
+        page by a four-letter code -- /care/ is Capitol Reef -- so no path
+        there ever contains the park's name, and park-wide listings such as
+        /care/planyourvisit/trailguide.htm, hiking.htm and thingstodo.htm
+        passed both this rule and `_is_obviously_generic_url`. (2) is
+        unchanged, so /care/planyourvisit/sulphur-creek.htm still stands for
+        Sulphur Creek. A code belonging to a different park is caught too,
+        which is also the right answer.
         """
-        path = (urlparse(url or "").path or "").lower()
+        parsed = urlparse(url or "")
+        path = (parsed.path or "").lower()
         if not path:
             return False
 
-        dest_tokens = set(cls._significant_tokens(dest_name))
-        if not dest_tokens or not all(token in path for token in dest_tokens):
+        all_dest_tokens = set(cls._significant_tokens(dest_name))
+        place_name = str(dest_name or "").split(",", 1)[0]
+        place_tokens = set(cls._significant_tokens(place_name)) or all_dest_tokens
+
+        in_destination_scope = bool(place_tokens) and all(token in path for token in place_tokens)
+        if not in_destination_scope:
+            in_destination_scope = cls._is_nps_park_scoped_path(parsed.netloc, path)
+        if not in_destination_scope:
             return False
 
-        item_tokens = set(cls._significant_tokens(item_name)) - dest_tokens
+        item_tokens = set(cls._significant_tokens(item_name)) - all_dest_tokens - place_tokens
         if not item_tokens:
+            return False
+
+        if cls._host_carries_the_items_name(parsed.netloc, item_name):
             return False
 
         lower = (url or "").lower()
         return not any(token in lower for token in item_tokens)
+
+    @staticmethod
+    def _host_carries_the_items_name(netloc: str, item_name: str) -> bool:
+        """True when the domain is the item's own name, run together.
+
+        `_significant_tokens` drops words under four letters, which is right for
+        matching prose and wrong for a brand. "Dru Bru Brewery" at
+        drubru.com/snoqualmie-pass/ is the brewery's own site, but its only
+        surviving token is `brewery`, absent from the URL -- so the destination
+        rule, read from the place name, took it for a page about Snoqualmie
+        Pass. Measured on the published Pacific Crest Trail guide: the one
+        false positive among ten changed verdicts.
+
+        Businesses squash their names into domains, so this looks for any run
+        of two or more adjacent words, joined, in the host. Runs shorter than
+        five letters are ignored, as too easy to find by accident.
+        """
+        host = (netloc or "").lower().split(":", 1)[0]
+        if not host:
+            return False
+        words = re.findall(r"[a-z0-9]+", (item_name or "").lower())
+        for size in range(len(words), 1, -1):
+            for start in range(0, len(words) - size + 1):
+                joined = "".join(words[start:start + size])
+                if len(joined) >= 5 and joined in host:
+                    return True
+        return False
+
+    #: Four-letter top-level nps.gov sections that are not park codes. Park
+    #: codes are four letters; so are these, and a page under /news/ is not
+    #: scoped to any one park.
+    _NPS_NON_PARK_SECTIONS = frozenset({"news", "orgs", "apps", "data", "subj"})
+
+    @classmethod
+    def _is_nps_park_scoped_path(cls, netloc: str, path: str) -> bool:
+        """True for an nps.gov path under a park code: /care/..., /zion/...
+
+        Not /thingstodo/..., /places/... or /articles/... -- those are
+        service-wide sections holding pages about single things, and are
+        exactly where entity-specific links live.
+        """
+        host = (netloc or "").lower().split(":", 1)[0]
+        if host != "nps.gov" and not host.endswith(".nps.gov"):
+            return False
+        segments = [s for s in (path or "").split("/") if s]
+        if len(segments) < 2:
+            # /care or /care/ alone is the park home, which
+            # _is_obviously_generic_url already handles as /index.htm.
+            return False
+        first = segments[0]
+        return bool(re.fullmatch(r"[a-z]{4}", first)) and first not in cls._NPS_NON_PARK_SECTIONS
 
     @staticmethod
     def _is_category_offer_listing_url(url: str) -> bool:

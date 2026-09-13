@@ -18593,10 +18593,146 @@ class TestTheDestinationsOwnPageIsNotAnItemsLink:
 
     def test_a_url_that_does_not_name_the_destination_is_untouched(self):
         """Both conditions are required. Without the first, any URL lacking the
-        item's words would be rejected -- including opaque but correct ones."""
+        item's words would be rejected -- including opaque but correct ones.
+
+        This test used nps.gov/zion/index.htm as its second example. It is no
+        longer untouched: nps.gov scopes pages by park code, the code now
+        stands in for the destination's name, and a park's home page is not a
+        link for a single thing inside it -- this park or another. See
+        test_an_nps_park_code_stands_in_for_the_destinations_name.
+        """
         assert not self.P("https://example.com/attractions/12345", "Red Canyon", self.DEST)
-        assert not self.P("https://www.nps.gov/zion/index.htm", "Red Canyon", self.DEST)
+        assert not self.P("https://www.recreation.gov/camping/campgrounds/234059", "Red Canyon", self.DEST)
 
     def test_the_rejection_is_a_labelled_retention_exit(self):
         from generator.url_discovery import _RETENTION_EXIT_LABELS
         assert 31 in _RETENTION_EXIT_LABELS
+
+    # ── Beyond Utah ──────────────────────────────────────────────────────────
+    #
+    # Everything above used DEST = "Capitol Reef National Park". Real
+    # manifests say "Capitol Reef National Park, Utah" -- and the rule only
+    # worked on that because `utah` is in _significant_tokens' stoplist. For
+    # any state outside it the state token was required in the URL path,
+    # where generic pages never put it.
+
+    def test_the_manifest_shaped_name_still_catches_59(self):
+        for item in ("Red Canyon", "Hickman Bridge Trail", "Cathedral Valley", "Sulphur Creek"):
+            assert self.P(self.GENERIC, item, "Capitol Reef National Park, Utah"), item
+
+    @pytest.mark.parametrize(
+        "dest, item, generic",
+        [
+            # Each URL returned HTTP 200 on 2026-09-12, found by searching for
+            # a visitor guide to the park. #120's rule missed all of them.
+            (
+                "Mount Rainier National Park, Washington",
+                "Skyline Trail",
+                "https://wheatlesswanderlust.com/things-to-do-mount-rainier-national-park/",
+            ),
+            (
+                "Mount Rainier National Park, Washington",
+                "Skyline Trail",
+                "https://parktrust.org/blog/mount-rainier-things-to-do-history-visitor-guide/",
+            ),
+            (
+                "Crater Lake National Park, Oregon",
+                "Rim Village",
+                "https://www.travelonthereg.com/crater-lake-national-park-itinerary/",
+            ),
+            (
+                "Yosemite National Park, California",
+                "Mist Trail",
+                "https://www.yosemite.com/official-guide-for-yosemite-first-timers/",
+            ),
+            (
+                "Yosemite National Park, California",
+                "Mist Trail",
+                "https://theazhikeaholics.com/yosemite-national-park/",
+            ),
+        ],
+    )
+    def test_a_state_outside_the_stoplist_does_not_hide_the_destinations_page(self, dest, item, generic):
+        """Live guides to the whole park. The path had to contain `washington`,
+        `oregon` or `california`, and no guide puts its state there."""
+        assert self.P(generic, item, dest)
+
+    def test_the_real_page_is_still_kept_outside_utah(self):
+        """URL shape only -- the item's own words in the path."""
+        assert not self.P(
+            "https://www.nps.gov/mora/planyourvisit/skyline-trail.htm",
+            "Skyline Trail", "Mount Rainier National Park, Washington",
+        )
+
+    def test_an_item_is_never_judged_on_its_state(self):
+        """URL shapes, not live pages: this pins the token arithmetic.
+
+        The item's words are still reduced by the WHOLE destination string.
+        "Oregon Vortex" is asked for `vortex`; if `oregon` stayed an item word,
+        every URL containing it -- half the state's -- would count as naming
+        the item, and the rule would never fire."""
+        dest = "Gold Hill, Oregon"
+        assert self.P("https://www.traveloregon.com/places-to-go/cities/gold-hill/", "Oregon Vortex", dest)
+        assert not self.P("https://www.oregonvortex.com/gold-hill/visit", "Oregon Vortex", dest)
+
+    # ── nps.gov ──────────────────────────────────────────────────────────────
+
+    @pytest.mark.parametrize(
+        "listing",
+        [
+            "https://www.nps.gov/care/planyourvisit/trailguide.htm",
+            "https://www.nps.gov/care/planyourvisit/hiking.htm",
+            "https://www.nps.gov/care/planyourvisit/thingstodo.htm",
+            "https://www.nps.gov/care/planyourvisit/day-hikes.htm",
+        ],
+    )
+    def test_an_nps_park_code_stands_in_for_the_destinations_name(self, listing):
+        """NPS never puts the park's name in a path -- /care/ is Capitol Reef.
+        These park-wide listings passed both this rule and
+        _is_obviously_generic_url; trailguide.htm was confirmed live, listing
+        every trail in the park, and KEPT for Hickman Bridge Trail."""
+        assert self.P(listing, "Hickman Bridge Trail", "Capitol Reef National Park, Utah")
+
+    def test_a_park_home_is_not_an_items_link_in_any_park(self):
+        assert self.P("https://www.nps.gov/zion/index.htm", "Red Canyon", "Capitol Reef National Park, Utah")
+
+    @pytest.mark.parametrize(
+        "item, specific",
+        [
+            ("Sulphur Creek", "https://www.nps.gov/care/planyourvisit/sulphur-creek.htm"),
+            ("Hickman Bridge Trail", "https://www.nps.gov/care/planyourvisit/hickmanbridge.htm"),
+            ("Cathedral Valley", "https://www.nps.gov/thingstodo/hike-cathedral-valley.htm"),
+            ("Sulphur Creek", "https://www.nps.gov/places/sulphur-creek-trailhead.htm"),
+        ],
+    )
+    def test_nps_pages_about_the_item_are_kept(self, item, specific):
+        """Under a park code, (2) still reads the URL for the item's words, and
+        matches inside unhyphenated slugs. /thingstodo/ and /places/ are
+        service-wide sections, never park-scoped -- that is where NPS keeps
+        its pages about single things."""
+        assert not self.P(specific, item, "Capitol Reef National Park, Utah")
+
+    def test_a_four_letter_nps_section_is_not_mistaken_for_a_park(self):
+        assert not URLDiscoverer._is_nps_park_scoped_path("www.nps.gov", "/news/release.htm")
+        assert not URLDiscoverer._is_nps_park_scoped_path("www.nps.gov", "/thingstodo/hike.htm")
+        assert URLDiscoverer._is_nps_park_scoped_path("www.nps.gov", "/care/planyourvisit/hiking.htm")
+
+    def test_the_items_own_site_is_not_the_destinations_page(self):
+        """Live on the published Pacific Crest Trail guide, and the one false
+        positive reading the place name produced: the brewery's own site.
+        `dru` and `bru` are under the four-letter token minimum; `brewery` is
+        not in the URL. The name survives, run together, in the domain."""
+        assert not self.P(
+            "https://www.drubru.com/snoqualmie-pass/", "Dru Bru Brewery", "Snoqualmie Pass, Washington"
+        )
+
+    def test_a_host_match_needs_two_joined_words(self):
+        """One word in the host is already condition (2)'s job; the joined-run
+        check exists only for names whose words are too short to be tokens."""
+        assert URLDiscoverer._host_carries_the_items_name("www.drubru.com", "Dru Bru Brewery")
+        assert not URLDiscoverer._host_carries_the_items_name("www.cascadeloop.com", "Espresso Chalet")
+        assert not URLDiscoverer._host_carries_the_items_name("www.abcd.com", "A B C D")
+
+    def test_park_codes_are_only_read_on_nps(self):
+        assert not URLDiscoverer._is_nps_park_scoped_path("example.com", "/care/planyourvisit/hiking.htm")
+        assert not URLDiscoverer._is_nps_park_scoped_path("notnps.gov", "/care/hiking.htm")
